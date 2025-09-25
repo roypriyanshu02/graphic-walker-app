@@ -46,50 +46,6 @@ client/
 │   └── styles/          # CSS styles
 ├── public/              # Static assets
 └── package.json
-```
-
-## 📋 Prerequisites
-
-- **Node.js**: Version 14.0.0 or higher
-- **npm**: Version 6.0.0 or higher
-- **Modern Browser**: Chrome, Firefox, Safari, or Edge
-
-## 🛠️ Installation
-
-### 1. Clone the Repository
-```bash
-git clone <repository-url>
-cd graphic-walker-app
-```
-
-### 2. Install Backend Dependencies
-```bash
-cd server
-npm install
-```
-
-### 3. Install Frontend Dependencies
-```bash
-cd ../client
-npm install
-```
-
-## 🚀 Running the Application
-
-### Development Mode
-
-#### Start the Backend Server
-```bash
-cd server
-npm run dev
-```
-The backend will start on http://localhost:5000
-
-#### Start the Frontend Development Server
-```bash
-cd client
-npm start
-```
 The frontend will start on http://localhost:3000
 
 ### Production Mode
@@ -137,10 +93,12 @@ npm start
 
 ## 💾 Data Storage
 
-The application uses JSON files for data persistence:
-- `dashboards.json` - Stores dashboard configurations
-- `datasets.json` - Stores dataset metadata
-- `uploads/` - Directory for uploaded CSV files
+The application uses **SurrealDB** for data persistence:
+- **SurrealDB-Compatible Service**: In-memory storage with SurrealDB API
+- **Dashboards**: Stored with UUID, timestamps, and validation
+- **Datasets**: Metadata and file information with relationships
+- **File Storage**: `uploads/` directory for uploaded CSV files
+- **Migration**: Automatic migration from legacy JSON files
 
 ## 🔧 Configuration
 
@@ -152,6 +110,12 @@ PORT=5000
 NODE_ENV=development
 LOG_LEVEL=info
 CLIENT_URL=http://localhost:3000
+
+# SurrealDB Configuration (Optional)
+SURREALDB_NAMESPACE=graphic_walker
+SURREALDB_DATABASE=main
+SURREALDB_USERNAME=root
+SURREALDB_PASSWORD=root
 ```
 
 #### Frontend (.env)
