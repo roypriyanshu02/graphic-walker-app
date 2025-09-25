@@ -1,31 +1,42 @@
 #!/usr/bin/env node
 
-const app = require('./src/app');
 const config = require('./src/config');
 const logger = require('./src/utils/logger');
 
 class Server {
   constructor() {
-    this.app = app;
+    this.app = null;
     this.port = config.server.port;
     this.host = config.server.host;
     this.server = null;
   }
 
-  start() {
-    this.server = this.app.listen(this.port, this.host, () => {
-      logger.info('🚀 Graphic Walker Server started successfully', {
-        port: this.port,
-        host: this.host,
-        environment: config.server.environment,
-        version: '2.0.0'
+  async start() {
+    try {
+      logger.info('Starting Graphic Walker Server...');
+      
+      // Initialize the app
+      const app = require('./src/app');
+      this.app = app;
+      
+      this.server = this.app.listen(this.port, this.host, () => {
+        logger.info('🚀 Graphic Walker Server started successfully', {
+          port: this.port,
+          host: this.host,
+          environment: config.server.environment,
+          version: '2.1.0',
+          database: 'SurrealDB'
+        });
+
+        this.logEndpoints();
       });
 
-      this.logEndpoints();
-    });
-
-    this.setupGracefulShutdown();
-    return this.server;
+      this.setupGracefulShutdown();
+      return this.server;
+    } catch (error) {
+      logger.error('Failed to start server', { error: error.message });
+      process.exit(1);
+    }
   }
 
   logEndpoints() {
@@ -50,27 +61,32 @@ class Server {
   }
 
   setupGracefulShutdown() {
-    const shutdown = (signal) => {
+    const shutdown = async (signal) => {
       logger.info(`Received ${signal}. Starting graceful shutdown...`);
       
-      if (this.server) {
-        this.server.close((err) => {
-          if (err) {
-            logger.error('Error during server shutdown', { error: err.message });
-            process.exit(1);
-          }
-          
-          logger.info('Server closed successfully');
-          process.exit(0);
-        });
+      try {
+        if (this.server) {
+          this.server.close((err) => {
+            if (err) {
+              logger.error('Error during server shutdown', { error: err.message });
+              process.exit(1);
+            }
+            
+            logger.info('Server closed successfully');
+            process.exit(0);
+          });
 
-        // Force close after 10 seconds
-        setTimeout(() => {
-          logger.error('Forcing server shutdown after timeout');
-          process.exit(1);
-        }, 10000);
-      } else {
-        process.exit(0);
+          // Force close after 10 seconds
+          setTimeout(() => {
+            logger.error('Forcing server shutdown after timeout');
+            process.exit(1);
+          }, 10000);
+        } else {
+          process.exit(0);
+        }
+      } catch (error) {
+        logger.error('Error during graceful shutdown', { error: error.message });
+        process.exit(1);
       }
     };
 
@@ -108,7 +124,10 @@ class Server {
 // Start server if this file is run directly
 if (require.main === module) {
   const server = new Server();
-  server.start();
+  server.start().catch((error) => {
+    logger.error('Failed to start server', { error: error.message });
+    process.exit(1);
+  });
 }
 
 module.exports = Server;

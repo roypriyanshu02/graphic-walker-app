@@ -25,7 +25,18 @@ const config = {
     uploadDir: path.join(__dirname, '../../uploads')
   },
 
-  // Data storage configuration
+  // Database configuration (SurrealDB)
+  database: {
+    url: process.env.SURREALDB_URL || `file://${path.join(__dirname, '../../database/graphic-walker.db')}`,
+    namespace: process.env.SURREALDB_NAMESPACE || 'graphic_walker',
+    database: process.env.SURREALDB_DATABASE || 'main',
+    username: process.env.SURREALDB_USERNAME || 'root',
+    password: process.env.SURREALDB_PASSWORD || 'root',
+    // For embedded/file-based storage
+    path: process.env.SURREALDB_PATH || path.join(__dirname, '../../database/graphic-walker.db')
+  },
+
+  // Legacy data storage configuration (for migration)
   storage: {
     dataDir: path.join(__dirname, '../../data'),
     dashboardsFile: 'dashboards.json',
