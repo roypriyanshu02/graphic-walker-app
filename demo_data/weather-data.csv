@@ -1,0 +1,36 @@
+Date,City,Temperature_C,Humidity,Pressure_hPa,Wind_Speed_kmh,Weather_Condition,Precipitation_mm,UV_Index
+2024-01-01,New York,2,-1,1013,15,Cloudy,0,2
+2024-01-01,Los Angeles,18,65,1015,8,Sunny,0,6
+2024-01-01,Chicago,-5,78,1010,22,Snow,5,1
+2024-01-01,Miami,24,82,1018,12,Partly Cloudy,0,7
+2024-01-01,Seattle,8,88,1008,18,Rainy,12,2
+2024-01-02,New York,0,72,1011,18,Snow,3,1
+2024-01-02,Los Angeles,20,58,1016,6,Sunny,0,7
+2024-01-02,Chicago,-3,75,1012,20,Cloudy,0,2
+2024-01-02,Miami,26,79,1019,10,Sunny,0,8
+2024-01-02,Seattle,10,85,1009,15,Cloudy,2,3
+2024-01-03,New York,3,68,1014,12,Partly Cloudy,0,3
+2024-01-03,Los Angeles,22,62,1017,9,Sunny,0,8
+2024-01-03,Chicago,1,80,1013,25,Windy,0,2
+2024-01-03,Miami,28,76,1020,14,Partly Cloudy,0,9
+2024-01-03,Seattle,12,82,1010,20,Rainy,8,2
+2024-01-04,New York,5,65,1016,10,Sunny,0,4
+2024-01-04,Los Angeles,19,70,1014,12,Cloudy,0,5
+2024-01-04,Chicago,4,77,1015,16,Partly Cloudy,0,3
+2024-01-04,Miami,25,84,1017,8,Rainy,15,6
+2024-01-04,Seattle,9,90,1007,22,Storm,25,1
+2024-01-05,New York,7,60,1018,8,Sunny,0,5
+2024-01-05,Los Angeles,21,55,1018,5,Sunny,0,8
+2024-01-05,Chicago,6,72,1017,14,Cloudy,0,3
+2024-01-05,Miami,27,78,1019,11,Sunny,0,9
+2024-01-05,Seattle,11,87,1011,17,Cloudy,3,2
+2024-01-06,New York,4,75,1012,20,Windy,0,3
+2024-01-06,Los Angeles,17,68,1015,15,Partly Cloudy,0,6
+2024-01-06,Chicago,2,82,1009,28,Storm,18,1
+2024-01-06,Miami,23,88,1016,16,Rainy,22,5
+2024-01-06,Seattle,7,92,1006,25,Storm,35,1
+2024-01-07,New York,6,58,1019,6,Sunny,0,5
+2024-01-07,Los Angeles,23,52,1020,4,Sunny,0,9
+2024-01-07,Chicago,8,69,1018,12,Partly Cloudy,0,4
+2024-01-07,Miami,29,74,1021,9,Sunny,0,10
+2024-01-07,Seattle,13,80,1012,14,Cloudy,1,3

@@ -1,0 +1,26 @@
+Employee_ID,Name,Department,Position,Salary,Performance_Score,Years_Experience,Age,Gender,Education,Projects_Completed,Training_Hours
+E001,Alice Johnson,Engineering,Senior Developer,95000,4.2,8,32,Female,Masters,12,40
+E002,Bob Smith,Marketing,Marketing Manager,75000,3.8,5,29,Male,Bachelors,8,35
+E003,Carol Davis,HR,HR Specialist,55000,4.0,3,26,Female,Bachelors,6,45
+E004,David Wilson,Engineering,Junior Developer,65000,3.5,2,24,Male,Bachelors,4,50
+E005,Emma Brown,Sales,Sales Representative,60000,4.5,4,28,Female,Bachelors,15,30
+E006,Frank Miller,Finance,Financial Analyst,70000,3.9,6,31,Male,Masters,10,25
+E007,Grace Lee,Engineering,Tech Lead,110000,4.7,10,35,Female,Masters,18,20
+E008,Henry Taylor,Marketing,Content Creator,50000,3.6,2,25,Male,Bachelors,5,40
+E009,Ivy Chen,HR,Recruiter,58000,4.1,4,27,Female,Bachelors,12,38
+E010,Jack Anderson,Sales,Sales Manager,85000,4.3,7,33,Male,Masters,20,15
+E011,Kate Williams,Finance,Accountant,62000,3.7,3,26,Female,Bachelors,7,42
+E012,Liam Garcia,Engineering,DevOps Engineer,88000,4.4,6,30,Male,Masters,14,28
+E013,Mia Rodriguez,Marketing,Digital Marketer,55000,3.9,3,25,Female,Bachelors,9,36
+E014,Noah Martinez,HR,HR Manager,80000,4.2,8,34,Male,Masters,16,22
+E015,Olivia Thompson,Sales,Account Executive,68000,4.0,5,29,Female,Bachelors,11,33
+E016,Paul White,Finance,Senior Analyst,78000,4.1,7,32,Male,Masters,13,27
+E017,Quinn Jackson,Engineering,Full Stack Developer,82000,4.6,5,28,Non-binary,Masters,16,31
+E018,Rachel Harris,Marketing,Brand Manager,72000,3.8,6,30,Female,Masters,10,29
+E019,Sam Clark,HR,Training Coordinator,52000,3.5,2,24,Male,Bachelors,4,48
+E020,Tina Lewis,Sales,Business Development,75000,4.4,6,31,Female,Masters,18,24
+E021,Uma Walker,Finance,Budget Analyst,65000,3.6,4,27,Female,Bachelors,8,37
+E022,Victor Hall,Engineering,Software Architect,120000,4.8,12,38,Male,PhD,25,18
+E023,Wendy Allen,Marketing,Social Media Manager,48000,3.4,1,23,Female,Bachelors,3,44
+E024,Xavier Young,HR,Benefits Administrator,54000,3.7,3,26,Male,Bachelors,6,41
+E025,Yara King,Sales,Regional Manager,95000,4.5,9,36,Female,Masters,22,16
