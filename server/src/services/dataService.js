@@ -1,314 +1,162 @@
-const { v4: uuidv4 } = require('uuid');
-const path = require('path');
-const fs = require('fs');
 const config = require('../config');
 const logger = require('../utils/logger');
 
-// Pure JSON File Storage Service
-class JsonFileStorageService {
+// Data Service Factory - Automatically migrates from JSON to SQLite if needed
+class DataService {
   constructor() {
-    this.dashboardsPath = path.join(config.storage.dataDir, config.storage.dashboardsFile);
-    this.datasetsPath = path.join(config.storage.dataDir, config.storage.datasetsFile);
+    this.service = null;
     this.initialized = false;
   }
 
   async initialize() {
     if (!this.initialized) {
-      await this.ensureDirectories();
-      await this.ensureFiles();
+      // Always use SQLite service
+      const SQLiteService = require('./sqliteService');
+      this.service = SQLiteService;
+      
+      // Check if we need to migrate from JSON
+      await this.checkAndMigrateFromJson();
+      
+      // Initialize the SQLite service
+      await this.service.initialize();
+      
       this.initialized = true;
-      logger.info('JSON File Storage Service initialized');
+      logger.info('Data Service initialized with SQLite backend');
     }
     return this;
   }
 
-  async ensureDirectories() {
+  async checkAndMigrateFromJson() {
     try {
-      if (!fs.existsSync(config.storage.dataDir)) {
-        fs.mkdirSync(config.storage.dataDir, { recursive: true });
-        logger.info('Created data directory', { path: config.storage.dataDir });
+      const jsonMigrationService = require('./jsonMigrationService');
+      const hasJsonData = await jsonMigrationService.hasData();
+      
+      if (hasJsonData.hasDatasets || hasJsonData.hasDashboards) {
+        logger.info('JSON data found, starting migration to SQLite', {
+          datasets: hasJsonData.datasetCount,
+          dashboards: hasJsonData.dashboardCount
+        });
+        
+        // Initialize SQLite service for migration
+        await this.service.initialize();
+        
+        // Check if SQLite already has data (to avoid duplicate migration)
+        const sqliteStats = await this.service.getStats();
+        
+        if (sqliteStats.datasetCount === 0 && sqliteStats.dashboardCount === 0) {
+          // Perform migration
+          const migrationResult = await this.service.migrateFromJson();
+          
+          if (migrationResult.success) {
+            // Backup JSON files after successful migration
+            await jsonMigrationService.backupJsonFiles();
+            
+            logger.info('Migration from JSON to SQLite completed successfully', {
+              migratedDatasets: migrationResult.datasetsCount,
+              migratedDashboards: migrationResult.dashboardsCount
+            });
+          }
+        } else {
+          logger.info('SQLite database already contains data, skipping migration', {
+            existingDatasets: sqliteStats.datasetCount,
+            existingDashboards: sqliteStats.dashboardCount
+          });
+        }
+      } else {
+        logger.info('No JSON data found, starting with fresh SQLite database');
       }
     } catch (error) {
-      logger.error('Failed to create data directory', { error: error.message });
-      throw error;
+      logger.warn('Migration check failed, continuing with SQLite', { error: error.message });
     }
   }
 
-  async ensureFiles() {
-    try {
-      // Ensure dashboards.json exists
-      if (!fs.existsSync(this.dashboardsPath)) {
-        fs.writeFileSync(this.dashboardsPath, JSON.stringify([], null, 2));
-        logger.info('Created dashboards.json file');
-      }
-
-      // Ensure datasets.json exists
-      if (!fs.existsSync(this.datasetsPath)) {
-        fs.writeFileSync(this.datasetsPath, JSON.stringify([], null, 2));
-        logger.info('Created datasets.json file');
-      }
-    } catch (error) {
-      logger.error('Failed to ensure JSON files exist', { error: error.message });
-      throw error;
-    }
-  }
-
-  // Helper methods for file operations
-  readJsonFile(filePath) {
-    try {
-      const data = fs.readFileSync(filePath, 'utf8');
-      return JSON.parse(data);
-    } catch (error) {
-      logger.error('Failed to read JSON file', { filePath, error: error.message });
-      return [];
-    }
-  }
-
-  writeJsonFile(filePath, data) {
-    try {
-      fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
-      return true;
-    } catch (error) {
-      logger.error('Failed to write JSON file', { filePath, error: error.message });
-      throw error;
-    }
-  }
-
-  // Dashboard methods
+  // Delegate all methods to the underlying service
   async getDashboards() {
     await this.initialize();
-    logger.debug('Fetching dashboards from JSON file storage');
-    
-    try {
-      return this.readJsonFile(this.dashboardsPath);
-    } catch (error) {
-      logger.error('Failed to fetch dashboards', { error: error.message });
-      throw error;
-    }
+    return this.service.getDashboards();
   }
 
   async getDashboardByName(dashboardName) {
     await this.initialize();
-    logger.debug('Fetching dashboard by name', { dashboardName });
-    
-    try {
-      const dashboards = this.readJsonFile(this.dashboardsPath);
-      const dashboard = dashboards.find(d => d.dashboardName === dashboardName) || null;
-      
-      if (!dashboard) {
-        logger.warn('Dashboard not found', { dashboardName });
-      }
-      
-      return dashboard;
-    } catch (error) {
-      logger.error('Failed to fetch dashboard by name', { dashboardName, error: error.message });
-      throw error;
-    }
+    return this.service.getDashboardByName(dashboardName);
   }
 
   async saveDashboard(dashboard) {
     await this.initialize();
-    logger.info('Saving dashboard', { dashboardName: dashboard.dashboardName });
-    
-    try {
-      const dashboards = this.readJsonFile(this.dashboardsPath);
-      const existingIndex = dashboards.findIndex(d => d.dashboardName === dashboard.dashboardName);
-      const now = new Date().toISOString();
-      
-      const dashboardData = {
-        id: existingIndex >= 0 ? dashboards[existingIndex].id : uuidv4(),
-        dashboardName: dashboard.dashboardName,
-        datasetName: dashboard.datasetName,
-        jsonFormat: dashboard.jsonFormat,
-        isMultiple: dashboard.isMultiple || false,
-        createdAt: existingIndex >= 0 ? dashboards[existingIndex].createdAt : now,
-        updatedAt: now
-      };
-      
-      if (existingIndex >= 0) {
-        dashboards[existingIndex] = dashboardData;
-        logger.info('Dashboard updated', { dashboardName: dashboard.dashboardName });
-      } else {
-        dashboards.push(dashboardData);
-        logger.info('New dashboard created', { dashboardName: dashboard.dashboardName });
-      }
-      
-      this.writeJsonFile(this.dashboardsPath, dashboards);
-      return dashboardData;
-    } catch (error) {
-      logger.error('Failed to save dashboard', { dashboardName: dashboard.dashboardName, error: error.message });
-      throw error;
-    }
+    return this.service.saveDashboard(dashboard);
   }
 
   async deleteDashboard(dashboardName) {
     await this.initialize();
-    logger.info('Deleting dashboard', { dashboardName });
-    
-    try {
-      const dashboards = this.readJsonFile(this.dashboardsPath);
-      const existingIndex = dashboards.findIndex(d => d.dashboardName === dashboardName);
-      
-      if (existingIndex === -1) {
-        logger.warn('Dashboard not found for deletion', { dashboardName });
-        return false;
-      }
-      
-      dashboards.splice(existingIndex, 1);
-      this.writeJsonFile(this.dashboardsPath, dashboards);
-      
-      logger.info('Dashboard deleted successfully', { dashboardName });
-      return true;
-    } catch (error) {
-      logger.error('Failed to delete dashboard', { dashboardName, error: error.message });
-      throw error;
-    }
+    return this.service.deleteDashboard(dashboardName);
   }
 
-  // Dataset methods
   async getDatasets() {
     await this.initialize();
-    logger.debug('Fetching datasets from JSON file storage');
-    
-    try {
-      return this.readJsonFile(this.datasetsPath);
-    } catch (error) {
-      logger.error('Failed to fetch datasets', { error: error.message });
-      throw error;
-    }
+    return this.service.getDatasets();
   }
 
   async getDatasetByName(datasetName) {
     await this.initialize();
-    logger.debug('Fetching dataset by name', { datasetName });
-    
-    try {
-      const datasets = this.readJsonFile(this.datasetsPath);
-      const dataset = datasets.find(d => d.datasetName === datasetName) || null;
-      
-      if (!dataset) {
-        logger.warn('Dataset not found', { datasetName });
-      }
-      
-      return dataset;
-    } catch (error) {
-      logger.error('Failed to fetch dataset by name', { datasetName, error: error.message });
-      throw error;
-    }
+    return this.service.getDatasetByName(datasetName);
   }
 
   async saveDataset(dataset) {
     await this.initialize();
-    logger.info('Saving dataset', { datasetName: dataset.datasetName });
-    
-    try {
-      const datasets = this.readJsonFile(this.datasetsPath);
-      const existingIndex = datasets.findIndex(d => d.datasetName === dataset.datasetName);
-      const now = new Date().toISOString();
-      
-      const datasetData = {
-        id: existingIndex >= 0 ? datasets[existingIndex].id : uuidv4(),
-        datasetName: dataset.datasetName,
-        csvPath: dataset.csvPath,
-        isItFromCsv: dataset.isItFromCsv !== undefined ? dataset.isItFromCsv : true,
-        fileName: dataset.fileName || '',
-        fileSize: dataset.fileSize || 0,
-        mimeType: dataset.mimeType || 'text/csv',
-        sp: dataset.sp || '',
-        createdAt: existingIndex >= 0 ? datasets[existingIndex].createdAt : now,
-        updatedAt: now
-      };
-      
-      if (existingIndex >= 0) {
-        datasets[existingIndex] = datasetData;
-        logger.info('Dataset updated', { datasetName: dataset.datasetName });
-      } else {
-        datasets.push(datasetData);
-        logger.info('New dataset created', { datasetName: dataset.datasetName });
-      }
-      
-      this.writeJsonFile(this.datasetsPath, datasets);
-      return datasetData;
-    } catch (error) {
-      logger.error('Failed to save dataset', { datasetName: dataset.datasetName, error: error.message });
-      throw error;
-    }
+    return this.service.saveDataset(dataset);
   }
 
   async deleteDataset(datasetName) {
     await this.initialize();
-    logger.info('Deleting dataset', { datasetName });
-    
-    try {
-      const datasets = this.readJsonFile(this.datasetsPath);
-      const existingIndex = datasets.findIndex(d => d.datasetName === datasetName);
-      
-      if (existingIndex === -1) {
-        logger.warn('Dataset not found for deletion', { datasetName });
-        return false;
-      }
-      
-      datasets.splice(existingIndex, 1);
-      this.writeJsonFile(this.datasetsPath, datasets);
-      
-      logger.info('Dataset deleted successfully', { datasetName });
-      return true;
-    } catch (error) {
-      logger.error('Failed to delete dataset', { datasetName, error: error.message });
-      throw error;
-    }
+    return this.service.deleteDataset(datasetName);
   }
 
-  // Utility methods
   async getStats() {
     await this.initialize();
-    logger.debug('Fetching database statistics');
-    
-    try {
-      const dashboards = this.readJsonFile(this.dashboardsPath);
-      const datasets = this.readJsonFile(this.datasetsPath);
-      
-      return {
-        dashboardCount: dashboards.length,
-        datasetCount: datasets.length,
-        lastUpdated: new Date().toISOString(),
-        database: 'JSON File Storage'
-      };
-    } catch (error) {
-      logger.error('Failed to fetch database statistics', { error: error.message });
-      throw error;
-    }
+    return this.service.getStats();
   }
 
-  // Database health check
   async healthCheck() {
-    try {
-      await this.initialize();
-      
-      const dashboards = this.readJsonFile(this.dashboardsPath);
-      const datasets = this.readJsonFile(this.datasetsPath);
-      
-      return {
-        status: 'healthy',
-        message: 'JSON File Storage service is healthy',
-        database: 'JSON File Storage',
-        storage_path: config.storage.dataDir,
-        dashboardCount: dashboards.length,
-        datasetCount: datasets.length,
-        files: {
-          dashboards: this.dashboardsPath,
-          datasets: this.datasetsPath
-        }
-      };
-    } catch (error) {
-      logger.error('Database health check failed', { error: error.message });
-      return {
-        status: 'unhealthy',
-        message: error.message,
-        database: 'JSON File Storage'
-      };
+    await this.initialize();
+    return this.service.healthCheck();
+  }
+
+  // User authentication methods
+  async createUser(userData) {
+    await this.initialize();
+    return this.service.createUser(userData);
+  }
+
+  async getUserByEmail(email) {
+    await this.initialize();
+    return this.service.getUserByEmail(email);
+  }
+
+  async getUserById(userId) {
+    await this.initialize();
+    return this.service.getUserById(userId);
+  }
+
+  async updateUserLastLogin(userId) {
+    await this.initialize();
+    return this.service.updateUserLastLogin(userId);
+  }
+
+  // Additional utility methods
+  async migrateFromJson() {
+    await this.initialize();
+    if (this.service.migrateFromJson) {
+      return this.service.migrateFromJson();
     }
+    throw new Error('Migration not supported by current service');
+  }
+
+  close() {
+    if (this.service && this.service.close) {
+      this.service.close();
+    }
+    this.initialized = false;
   }
 }
 
-module.exports = new JsonFileStorageService();
+module.exports = new DataService();

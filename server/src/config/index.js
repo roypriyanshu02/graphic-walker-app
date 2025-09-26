@@ -25,7 +25,17 @@ const config = {
     uploadDir: path.join(__dirname, '../../uploads')
   },
 
-  // JSON file storage configuration
+  // Database configuration
+  database: {
+    type: 'sqlite',
+    path: path.join(__dirname, '../../data/graphic-walker.db'),
+    options: {
+      verbose: process.env.NODE_ENV === 'development' ? console.log : null,
+      fileMustExist: false
+    }
+  },
+
+  // Legacy JSON file storage configuration (for migration)
   storage: {
     dataDir: path.join(__dirname, '../../data'),
     dashboardsFile: 'dashboards.json',
