@@ -2,7 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Global Styles */
+/* Global Styles - Notion-inspired */
 * {
   margin: 0;
   padding: 0;
@@ -10,204 +10,137 @@
 }
 
 body {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
+  font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, "Apple Color Emoji", Arial, sans-serif, "Segoe UI Emoji", "Segoe UI Symbol";
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: #f9fafb;
-  color: #111827;
-  line-height: 1.6;
+  background-color: #ffffff;
+  color: #37352f;
+  line-height: 1.5;
+  font-size: 14px;
+}
+
+/* Notion-style text selection */
+::selection {
+  background-color: rgba(35, 131, 226, 0.28);
+}
+
+/* Custom scrollbar - Notion style */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(55, 53, 47, 0.16);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(55, 53, 47, 0.24);
 }
 
 code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace;
+  background-color: rgba(135, 131, 120, 0.15);
+  color: #eb5757;
+  border-radius: 3px;
+  padding: 0.2em 0.4em;
+  font-size: 85%;
 }
 
-/* Error Boundary Styles */
+/* Notion-inspired Component Styles */
+@layer components {
+  /* Button variants */
+  .btn-notion {
+    @apply inline-flex items-center justify-center px-3 py-1.5 text-sm font-medium rounded-md transition-colors duration-150 ease-in-out;
+    @apply border border-notion-200 bg-white text-notion-700 hover:bg-notion-50;
+  }
+
+  .btn-notion-primary {
+    @apply bg-accent-600 text-white border-accent-600 hover:bg-accent-700 hover:border-accent-700;
+  }
+
+  .btn-notion-ghost {
+    @apply border-transparent bg-transparent text-notion-600 hover:bg-notion-100;
+  }
+
+  /* Input styles */
+  .input-notion {
+    @apply w-full px-3 py-2 text-sm bg-white border border-notion-200 rounded-md;
+    @apply focus:outline-none focus:ring-1 focus:ring-accent-500 focus:border-accent-500;
+    @apply placeholder-notion-400 text-notion-900;
+  }
+
+  /* Card styles */
+  .card-notion {
+    @apply bg-white border border-notion-200 rounded-lg shadow-sm;
+  }
+
+  .card-notion-hover {
+    @apply transition-all duration-150 hover:shadow-card hover:border-notion-300;
+  }
+
+  /* Page layout */
+  .page-notion {
+    @apply min-h-screen bg-white text-notion-900;
+  }
+
+  .sidebar-notion {
+    @apply bg-notion-50 border-r border-notion-200;
+  }
+
+  /* Typography */
+  .heading-notion {
+    @apply font-semibold text-notion-900 leading-tight;
+  }
+
+  .text-notion-secondary {
+    @apply text-notion-600;
+  }
+
+  .text-notion-muted {
+    @apply text-notion-500;
+  }
+}
+
+/* Error Boundary Styles - Notion inspired */
 .error-boundary {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: 100vh;
-  padding: 2rem;
-  text-align: center;
-  background-color: #fff;
+  @apply flex flex-col items-center justify-center min-h-screen p-8 text-center bg-white;
 }
 
 .error-boundary h1 {
-  color: #e74c3c;
-  margin-bottom: 1rem;
+  @apply text-2xl font-semibold text-error-600 mb-4;
 }
 
 .error-boundary p {
-  margin-bottom: 1rem;
-  color: #666;
+  @apply mb-4 text-notion-600;
 }
 
 .error-boundary details {
-  margin: 1rem 0;
-  text-align: left;
-  max-width: 600px;
+  @apply my-4 text-left max-w-2xl;
 }
 
 .error-boundary pre {
-  background-color: #f8f9fa;
-  padding: 1rem;
-  border-radius: 4px;
-  overflow-x: auto;
-  font-size: 0.875rem;
+  @apply bg-notion-100 p-4 rounded-lg overflow-x-auto text-sm font-mono;
 }
 
 .reload-btn {
-  background-color: #007bff;
-  color: white;
-  border: none;
-  padding: 0.75rem 1.5rem;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 1rem;
-  transition: background-color 0.2s;
+  @apply bg-accent-600 text-white border-0 px-6 py-3 rounded-lg cursor-pointer text-sm font-medium;
+  @apply transition-colors duration-150 hover:bg-accent-700;
 }
 
-.reload-btn:hover {
-  background-color: #0056b3;
+/* Focus styles for accessibility */
+.focus-notion {
+  @apply focus:outline-none focus:ring-2 focus:ring-accent-500 focus:ring-offset-2;
 }
 
-/* Utility Classes */
-.loading {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 2rem;
-}
-
-.error {
-  color: #e74c3c;
-  background-color: #fdf2f2;
-  border: 1px solid #f5c6cb;
-  padding: 1rem;
-  border-radius: 4px;
-  margin: 1rem 0;
-}
-
-.success {
-  color: #155724;
-  background-color: #d4edda;
-  border: 1px solid #c3e6cb;
-  padding: 1rem;
-  border-radius: 4px;
-  margin: 1rem 0;
-}
-
-.spinner {
-  border: 3px solid #f3f3f3;
-  border-top: 3px solid #007bff;
-  border-radius: 50%;
-  width: 40px;
-  height: 40px;
-  animation: spin 1s linear infinite;
-  margin: 0 auto 1rem;
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-/* Button Styles */
-.btn {
-  display: inline-block;
-  padding: 0.5rem 1rem;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 0.875rem;
-  text-decoration: none;
-  transition: all 0.2s;
-  text-align: center;
-}
-
-.btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.btn.primary {
-  background-color: #007bff;
-  color: white;
-}
-
-.btn.primary:hover:not(:disabled) {
-  background-color: #0056b3;
-}
-
-.btn.secondary {
-  background-color: #6c757d;
-  color: white;
-}
-
-.btn.secondary:hover:not(:disabled) {
-  background-color: #545b62;
-}
-
-.btn.danger {
-  background-color: #dc3545;
-  color: white;
-}
-
-.btn.danger:hover:not(:disabled) {
-  background-color: #c82333;
-}
-
-/* Form Styles */
-.form-group {
-  margin-bottom: 1rem;
-}
-
-.form-group label {
-  display: block;
-  margin-bottom: 0.5rem;
-  font-weight: 500;
-  color: #333;
-}
-
-.form-group input,
-.form-group select,
-.form-group textarea {
-  width: 100%;
-  padding: 0.5rem;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 1rem;
-  transition: border-color 0.2s;
-}
-
-.form-group input:focus,
-.form-group select:focus,
-.form-group textarea:focus {
-  outline: none;
-  border-color: #007bff;
-  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
-}
-
-.form-group input:disabled,
-.form-group select:disabled,
-.form-group textarea:disabled {
-  background-color: #f8f9fa;
-  cursor: not-allowed;
-}
-
-/* Responsive Design */
+/* Responsive adjustments */
 @media (max-width: 768px) {
   body {
     font-size: 14px;
-  }
-  
-  .btn {
-    padding: 0.75rem 1rem;
-    font-size: 1rem;
   }
 }

@@ -35,183 +35,179 @@ const SettingsPage = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white shadow-sm border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-6 py-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
-              <p className="text-gray-600 mt-1">Manage your {APP_CONFIG.NAME} preferences</p>
-            </div>
-            <button
-              onClick={handleSave}
-              className="inline-flex items-center px-4 py-2 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-gradient-to-r from-primary-600 to-secondary-600 hover:from-primary-700 hover:to-secondary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-all duration-200"
-            >
-              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
-              Save Changes
-            </button>
+    <div className="page-notion p-6">
+      {/* Page Header */}
+      <div className="mb-8">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="heading-notion text-xl mb-2">Settings</h1>
+            <p className="text-notion-secondary text-sm">Manage your {APP_CONFIG.NAME} preferences</p>
           </div>
+          <button
+            onClick={handleSave}
+            className="btn-notion btn-notion-primary py-2 px-4 text-sm font-medium"
+          >
+            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
+            Save Changes
+          </button>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-6 py-8">
-        <div className="flex flex-col lg:flex-row gap-8">
-          {/* Sidebar Navigation */}
-          <div className="lg:w-64 flex-shrink-0">
-            <nav className="bg-white rounded-xl shadow-soft border border-gray-200 p-2">
-              {sections.map((section) => (
-                <button
-                  key={section.id}
-                  onClick={() => setActiveSection(section.id)}
-                  className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 ${
-                    activeSection === section.id
-                      ? 'bg-primary-50 text-primary-700 border-primary-200'
-                      : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
-                  }`}
-                >
-                  <svg className="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={section.icon} />
-                  </svg>
-                  {section.name}
-                </button>
-              ))}
-            </nav>
-          </div>
+      <div className="flex flex-col lg:flex-row gap-6">
+        {/* Sidebar Navigation */}
+        <div className="lg:w-56 flex-shrink-0">
+          <nav className="card-notion p-2">
+            {sections.map((section) => (
+              <button
+                key={section.id}
+                onClick={() => setActiveSection(section.id)}
+                className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-md transition-all duration-150 ${
+                  activeSection === section.id
+                    ? 'bg-accent-100 text-accent-900'
+                    : 'text-notion-700 hover:bg-notion-100'
+                }`}
+              >
+                <svg className="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={section.icon} />
+                </svg>
+                {section.name}
+              </button>
+            ))}
+          </nav>
+        </div>
 
-          {/* Settings Content */}
-          <div className="flex-1">
-            <div className="bg-white rounded-xl shadow-soft border border-gray-200 p-6">
-              {activeSection === 'general' && (
-                <div className="space-y-6">
-                  <h2 className="text-lg font-semibold text-gray-900 mb-4">General Settings</h2>
-                  
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between py-3 border-b border-gray-100">
-                      <div>
-                        <h3 className="text-sm font-medium text-gray-900">Enable Notifications</h3>
-                        <p className="text-sm text-gray-500">Receive notifications about data updates and system events</p>
-                      </div>
-                      <label className="relative inline-flex items-center cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={settings.notifications}
-                          onChange={(e) => handleSettingChange('notifications', e.target.checked)}
-                          className="sr-only peer"
-                        />
-                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
-                      </label>
+        {/* Settings Content */}
+        <div className="flex-1">
+          <div className="card-notion p-6">
+            {activeSection === 'general' && (
+              <div className="space-y-6">
+                <h2 className="heading-notion text-base mb-4">General Settings</h2>
+                
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between py-3 border-b border-notion-200">
+                    <div>
+                      <h3 className="text-sm font-medium text-notion-900">Enable Notifications</h3>
+                      <p className="text-sm text-notion-500">Receive notifications about data updates and system events</p>
                     </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={settings.notifications}
+                        onChange={(e) => handleSettingChange('notifications', e.target.checked)}
+                        className="sr-only peer"
+                      />
+                      <div className="w-11 h-6 bg-notion-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-accent-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-notion-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent-600"></div>
+                    </label>
+                  </div>
 
-                    <div className="flex items-center justify-between py-3 border-b border-gray-100">
-                      <div>
-                        <h3 className="text-sm font-medium text-gray-900">Auto-save Dashboards</h3>
-                        <p className="text-sm text-gray-500">Automatically save dashboard changes</p>
-                      </div>
-                      <label className="relative inline-flex items-center cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={settings.autoSave}
-                          onChange={(e) => handleSettingChange('autoSave', e.target.checked)}
-                          className="sr-only peer"
-                        />
-                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-600"></div>
-                      </label>
+                  <div className="flex items-center justify-between py-3 border-b border-notion-200">
+                    <div>
+                      <h3 className="text-sm font-medium text-notion-900">Auto-save Dashboards</h3>
+                      <p className="text-sm text-notion-500">Automatically save dashboard changes</p>
                     </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={settings.autoSave}
+                        onChange={(e) => handleSettingChange('autoSave', e.target.checked)}
+                        className="sr-only peer"
+                      />
+                      <div className="w-11 h-6 bg-notion-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-accent-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-notion-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent-600"></div>
+                    </label>
                   </div>
                 </div>
-              )}
+              </div>
+            )}
 
-              {activeSection === 'appearance' && (
-                <div className="space-y-6">
-                  <h2 className="text-lg font-semibold text-gray-900 mb-4">Appearance</h2>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-3">Theme</label>
-                    <div className="grid grid-cols-2 gap-3">
-                      {['light', 'dark'].map((theme) => (
-                        <button
-                          key={theme}
-                          onClick={() => handleSettingChange('theme', theme)}
-                          className={`p-4 border-2 rounded-lg text-left transition-all duration-200 ${
-                            settings.theme === theme
-                              ? 'border-primary-500 bg-primary-50'
-                              : 'border-gray-200 hover:border-gray-300'
-                          }`}
-                        >
-                          <div className="flex items-center space-x-3">
-                            <div className={`w-4 h-4 rounded-full ${theme === 'light' ? 'bg-yellow-400' : 'bg-gray-800'}`}></div>
-                            <span className="font-medium capitalize">{theme}</span>
-                          </div>
-                        </button>
-                      ))}
-                    </div>
+            {activeSection === 'appearance' && (
+              <div className="space-y-6">
+                <h2 className="heading-notion text-base mb-4">Appearance</h2>
+                
+                <div>
+                  <label className="block text-sm font-medium text-notion-700 mb-3">Theme</label>
+                  <div className="grid grid-cols-2 gap-3">
+                    {['light', 'dark'].map((theme) => (
+                      <button
+                        key={theme}
+                        onClick={() => handleSettingChange('theme', theme)}
+                        className={`p-4 border rounded-lg text-left transition-all duration-150 ${
+                          settings.theme === theme
+                            ? 'border-accent-300 bg-accent-50'
+                            : 'border-notion-200 hover:border-notion-300'
+                        }`}
+                      >
+                        <div className="flex items-center space-x-3">
+                          <div className={`w-4 h-4 rounded-full ${theme === 'light' ? 'bg-warning-400' : 'bg-notion-800'}`}></div>
+                          <span className="font-medium capitalize text-notion-900">{theme}</span>
+                        </div>
+                      </button>
+                    ))}
                   </div>
                 </div>
-              )}
+              </div>
+            )}
 
-              {activeSection === 'data' && (
-                <div className="space-y-6">
-                  <h2 className="text-lg font-semibold text-gray-900 mb-4">Data & Charts</h2>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-3">Default Chart Type</label>
-                    <select
-                      value={settings.defaultChartType}
-                      onChange={(e) => handleSettingChange('defaultChartType', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                    >
-                      <option value="bar">Bar Chart</option>
-                      <option value="line">Line Chart</option>
-                      <option value="pie">Pie Chart</option>
-                      <option value="scatter">Scatter Plot</option>
-                    </select>
-                  </div>
+            {activeSection === 'data' && (
+              <div className="space-y-6">
+                <h2 className="heading-notion text-base mb-4">Data & Charts</h2>
+                
+                <div>
+                  <label className="block text-sm font-medium text-notion-700 mb-3">Default Chart Type</label>
+                  <select
+                    value={settings.defaultChartType}
+                    onChange={(e) => handleSettingChange('defaultChartType', e.target.value)}
+                    className="input-notion"
+                  >
+                    <option value="bar">Bar Chart</option>
+                    <option value="line">Line Chart</option>
+                    <option value="pie">Pie Chart</option>
+                    <option value="scatter">Scatter Plot</option>
+                  </select>
+                </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-3">Data Refresh Interval (minutes)</label>
-                    <select
-                      value={settings.dataRefreshInterval}
-                      onChange={(e) => handleSettingChange('dataRefreshInterval', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                    >
-                      <option value="1">1 minute</option>
-                      <option value="5">5 minutes</option>
-                      <option value="10">10 minutes</option>
-                      <option value="30">30 minutes</option>
-                      <option value="60">1 hour</option>
-                    </select>
+                <div>
+                  <label className="block text-sm font-medium text-notion-700 mb-3">Data Refresh Interval</label>
+                  <select
+                    value={settings.dataRefreshInterval}
+                    onChange={(e) => handleSettingChange('dataRefreshInterval', e.target.value)}
+                    className="input-notion"
+                  >
+                    <option value="1">1 minute</option>
+                    <option value="5">5 minutes</option>
+                    <option value="10">10 minutes</option>
+                    <option value="30">30 minutes</option>
+                    <option value="60">1 hour</option>
+                  </select>
+                </div>
+              </div>
+            )}
+
+            {activeSection === 'export' && (
+              <div className="space-y-6">
+                <h2 className="heading-notion text-base mb-4">Export Settings</h2>
+                
+                <div>
+                  <label className="block text-sm font-medium text-notion-700 mb-3">Default Export Format</label>
+                  <div className="grid grid-cols-3 gap-3">
+                    {['png', 'svg', 'pdf'].map((format) => (
+                      <button
+                        key={format}
+                        onClick={() => handleSettingChange('exportFormat', format)}
+                        className={`p-3 border rounded-lg text-center transition-all duration-150 ${
+                          settings.exportFormat === format
+                            ? 'border-accent-300 bg-accent-50 text-accent-700'
+                            : 'border-notion-200 hover:border-notion-300 text-notion-700'
+                        }`}
+                      >
+                        <span className="font-medium uppercase">{format}</span>
+                      </button>
+                    ))}
                   </div>
                 </div>
-              )}
-
-              {activeSection === 'export' && (
-                <div className="space-y-6">
-                  <h2 className="text-lg font-semibold text-gray-900 mb-4">Export Settings</h2>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-3">Default Export Format</label>
-                    <div className="grid grid-cols-3 gap-3">
-                      {['png', 'svg', 'pdf'].map((format) => (
-                        <button
-                          key={format}
-                          onClick={() => handleSettingChange('exportFormat', format)}
-                          className={`p-3 border-2 rounded-lg text-center transition-all duration-200 ${
-                            settings.exportFormat === format
-                              ? 'border-primary-500 bg-primary-50 text-primary-700'
-                              : 'border-gray-200 hover:border-gray-300'
-                          }`}
-                        >
-                          <span className="font-medium uppercase">{format}</span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
