@@ -1,2 +1,0 @@
-# This file ensures the database directory is tracked by git
-# SurrealDB database files will be stored here for embedded/file-based storage

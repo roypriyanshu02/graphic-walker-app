@@ -4,119 +4,83 @@ const fs = require('fs');
 const config = require('../config');
 const logger = require('../utils/logger');
 
-// SurrealDB-compatible in-memory implementation
-class SurrealDBService {
+// Pure JSON File Storage Service
+class JsonFileStorageService {
   constructor() {
-    this.dashboards = new Map();
-    this.datasets = new Map();
-    this.connected = false;
+    this.dashboardsPath = path.join(config.storage.dataDir, config.storage.dashboardsFile);
+    this.datasetsPath = path.join(config.storage.dataDir, config.storage.datasetsFile);
+    this.initialized = false;
   }
 
   async initialize() {
-    if (!this.connected) {
-      await this.connect();
+    if (!this.initialized) {
+      await this.ensureDirectories();
+      await this.ensureFiles();
+      this.initialized = true;
+      logger.info('JSON File Storage Service initialized');
     }
     return this;
   }
 
-  async connect() {
+  async ensureDirectories() {
     try {
-      // Initialize in-memory storage
-      this.dashboards.clear();
-      this.datasets.clear();
-      
-      this.connected = true;
-      logger.info('Connected to SurrealDB-compatible in-memory database');
-      
-      // Migrate existing JSON data if present
-      await this.migrateFromJson();
-      
-      return this;
+      if (!fs.existsSync(config.storage.dataDir)) {
+        fs.mkdirSync(config.storage.dataDir, { recursive: true });
+        logger.info('Created data directory', { path: config.storage.dataDir });
+      }
     } catch (error) {
-      logger.error('Failed to initialize SurrealDB service', { error: error.message });
-      throw new Error(`SurrealDB service initialization failed: ${error.message}`);
+      logger.error('Failed to create data directory', { error: error.message });
+      throw error;
     }
   }
 
-  // Schema is implicit in the in-memory implementation
-  // Data validation happens at the service level
-
-  async migrateFromJson() {
+  async ensureFiles() {
     try {
-      logger.info('Checking for JSON data to migrate...');
-      
-      const dashboardsPath = path.join(config.storage.dataDir, config.storage.dashboardsFile);
-      const datasetsPath = path.join(config.storage.dataDir, config.storage.datasetsFile);
-
-      // Migrate dashboards
-      if (fs.existsSync(dashboardsPath)) {
-        const dashboardsData = JSON.parse(fs.readFileSync(dashboardsPath, 'utf8'));
-        if (dashboardsData.length > 0) {
-          for (const dashboard of dashboardsData) {
-            const id = uuidv4();
-            this.dashboards.set(dashboard.dashboardName, {
-              id,
-              dashboardName: dashboard.dashboardName,
-              datasetName: dashboard.datasetName,
-              jsonFormat: dashboard.jsonFormat,
-              isMultiple: dashboard.isMultiple || false,
-              createdAt: dashboard.createdAt || new Date().toISOString(),
-              updatedAt: dashboard.updatedAt || new Date().toISOString()
-            });
-          }
-          logger.info(`Migrated ${dashboardsData.length} dashboards from JSON`);
-        }
+      // Ensure dashboards.json exists
+      if (!fs.existsSync(this.dashboardsPath)) {
+        fs.writeFileSync(this.dashboardsPath, JSON.stringify([], null, 2));
+        logger.info('Created dashboards.json file');
       }
 
-      // Migrate datasets
-      if (fs.existsSync(datasetsPath)) {
-        const datasetsData = JSON.parse(fs.readFileSync(datasetsPath, 'utf8'));
-        if (datasetsData.length > 0) {
-          for (const dataset of datasetsData) {
-            const id = uuidv4();
-            this.datasets.set(dataset.datasetName, {
-              id,
-              datasetName: dataset.datasetName,
-              csvPath: dataset.csvPath || dataset.excelPath,
-              isItFromCsv: dataset.isItFromCsv !== undefined ? dataset.isItFromCsv : true,
-              fileName: dataset.fileName || '',
-              fileSize: dataset.fileSize || 0,
-              mimeType: dataset.mimeType || 'text/csv',
-              sp: dataset.sp || '',
-              createdAt: dataset.createdAt || new Date().toISOString(),
-              updatedAt: dataset.updatedAt || new Date().toISOString()
-            });
-          }
-          logger.info(`Migrated ${datasetsData.length} datasets from JSON`);
-        }
+      // Ensure datasets.json exists
+      if (!fs.existsSync(this.datasetsPath)) {
+        fs.writeFileSync(this.datasetsPath, JSON.stringify([], null, 2));
+        logger.info('Created datasets.json file');
       }
-
-      logger.info('JSON data migration completed');
     } catch (error) {
-      logger.warn('JSON data migration failed or no data to migrate', { error: error.message });
+      logger.error('Failed to ensure JSON files exist', { error: error.message });
+      throw error;
     }
   }
 
-  async disconnect() {
-    if (this.connected) {
-      try {
-        this.dashboards.clear();
-        this.datasets.clear();
-        this.connected = false;
-        logger.info('Disconnected from SurrealDB service');
-      } catch (error) {
-        logger.error('Error disconnecting from SurrealDB service', { error: error.message });
-      }
+  // Helper methods for file operations
+  readJsonFile(filePath) {
+    try {
+      const data = fs.readFileSync(filePath, 'utf8');
+      return JSON.parse(data);
+    } catch (error) {
+      logger.error('Failed to read JSON file', { filePath, error: error.message });
+      return [];
+    }
+  }
+
+  writeJsonFile(filePath, data) {
+    try {
+      fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
+      return true;
+    } catch (error) {
+      logger.error('Failed to write JSON file', { filePath, error: error.message });
+      throw error;
     }
   }
 
   // Dashboard methods
   async getDashboards() {
     await this.initialize();
-    logger.debug('Fetching dashboards from SurrealDB-compatible storage');
+    logger.debug('Fetching dashboards from JSON file storage');
     
     try {
-      return Array.from(this.dashboards.values());
+      return this.readJsonFile(this.dashboardsPath);
     } catch (error) {
       logger.error('Failed to fetch dashboards', { error: error.message });
       throw error;
@@ -128,7 +92,8 @@ class SurrealDBService {
     logger.debug('Fetching dashboard by name', { dashboardName });
     
     try {
-      const dashboard = this.dashboards.get(dashboardName) || null;
+      const dashboards = this.readJsonFile(this.dashboardsPath);
+      const dashboard = dashboards.find(d => d.dashboardName === dashboardName) || null;
       
       if (!dashboard) {
         logger.warn('Dashboard not found', { dashboardName });
@@ -146,27 +111,29 @@ class SurrealDBService {
     logger.info('Saving dashboard', { dashboardName: dashboard.dashboardName });
     
     try {
-      const existing = this.dashboards.get(dashboard.dashboardName);
+      const dashboards = this.readJsonFile(this.dashboardsPath);
+      const existingIndex = dashboards.findIndex(d => d.dashboardName === dashboard.dashboardName);
       const now = new Date().toISOString();
       
       const dashboardData = {
-        id: existing?.id || uuidv4(),
+        id: existingIndex >= 0 ? dashboards[existingIndex].id : uuidv4(),
         dashboardName: dashboard.dashboardName,
         datasetName: dashboard.datasetName,
         jsonFormat: dashboard.jsonFormat,
         isMultiple: dashboard.isMultiple || false,
-        createdAt: existing?.createdAt || now,
+        createdAt: existingIndex >= 0 ? dashboards[existingIndex].createdAt : now,
         updatedAt: now
       };
       
-      this.dashboards.set(dashboard.dashboardName, dashboardData);
-      
-      if (existing) {
+      if (existingIndex >= 0) {
+        dashboards[existingIndex] = dashboardData;
         logger.info('Dashboard updated', { dashboardName: dashboard.dashboardName });
       } else {
+        dashboards.push(dashboardData);
         logger.info('New dashboard created', { dashboardName: dashboard.dashboardName });
       }
       
+      this.writeJsonFile(this.dashboardsPath, dashboards);
       return dashboardData;
     } catch (error) {
       logger.error('Failed to save dashboard', { dashboardName: dashboard.dashboardName, error: error.message });
@@ -179,14 +146,17 @@ class SurrealDBService {
     logger.info('Deleting dashboard', { dashboardName });
     
     try {
-      const existed = this.dashboards.has(dashboardName);
+      const dashboards = this.readJsonFile(this.dashboardsPath);
+      const existingIndex = dashboards.findIndex(d => d.dashboardName === dashboardName);
       
-      if (!existed) {
+      if (existingIndex === -1) {
         logger.warn('Dashboard not found for deletion', { dashboardName });
         return false;
       }
       
-      this.dashboards.delete(dashboardName);
+      dashboards.splice(existingIndex, 1);
+      this.writeJsonFile(this.dashboardsPath, dashboards);
+      
       logger.info('Dashboard deleted successfully', { dashboardName });
       return true;
     } catch (error) {
@@ -198,10 +168,10 @@ class SurrealDBService {
   // Dataset methods
   async getDatasets() {
     await this.initialize();
-    logger.debug('Fetching datasets from SurrealDB-compatible storage');
+    logger.debug('Fetching datasets from JSON file storage');
     
     try {
-      return Array.from(this.datasets.values());
+      return this.readJsonFile(this.datasetsPath);
     } catch (error) {
       logger.error('Failed to fetch datasets', { error: error.message });
       throw error;
@@ -213,7 +183,8 @@ class SurrealDBService {
     logger.debug('Fetching dataset by name', { datasetName });
     
     try {
-      const dataset = this.datasets.get(datasetName) || null;
+      const datasets = this.readJsonFile(this.datasetsPath);
+      const dataset = datasets.find(d => d.datasetName === datasetName) || null;
       
       if (!dataset) {
         logger.warn('Dataset not found', { datasetName });
@@ -231,11 +202,12 @@ class SurrealDBService {
     logger.info('Saving dataset', { datasetName: dataset.datasetName });
     
     try {
-      const existing = this.datasets.get(dataset.datasetName);
+      const datasets = this.readJsonFile(this.datasetsPath);
+      const existingIndex = datasets.findIndex(d => d.datasetName === dataset.datasetName);
       const now = new Date().toISOString();
       
       const datasetData = {
-        id: existing?.id || uuidv4(),
+        id: existingIndex >= 0 ? datasets[existingIndex].id : uuidv4(),
         datasetName: dataset.datasetName,
         csvPath: dataset.csvPath,
         isItFromCsv: dataset.isItFromCsv !== undefined ? dataset.isItFromCsv : true,
@@ -243,18 +215,19 @@ class SurrealDBService {
         fileSize: dataset.fileSize || 0,
         mimeType: dataset.mimeType || 'text/csv',
         sp: dataset.sp || '',
-        createdAt: existing?.createdAt || now,
+        createdAt: existingIndex >= 0 ? datasets[existingIndex].createdAt : now,
         updatedAt: now
       };
       
-      this.datasets.set(dataset.datasetName, datasetData);
-      
-      if (existing) {
+      if (existingIndex >= 0) {
+        datasets[existingIndex] = datasetData;
         logger.info('Dataset updated', { datasetName: dataset.datasetName });
       } else {
+        datasets.push(datasetData);
         logger.info('New dataset created', { datasetName: dataset.datasetName });
       }
       
+      this.writeJsonFile(this.datasetsPath, datasets);
       return datasetData;
     } catch (error) {
       logger.error('Failed to save dataset', { datasetName: dataset.datasetName, error: error.message });
@@ -267,14 +240,17 @@ class SurrealDBService {
     logger.info('Deleting dataset', { datasetName });
     
     try {
-      const existed = this.datasets.has(datasetName);
+      const datasets = this.readJsonFile(this.datasetsPath);
+      const existingIndex = datasets.findIndex(d => d.datasetName === datasetName);
       
-      if (!existed) {
+      if (existingIndex === -1) {
         logger.warn('Dataset not found for deletion', { datasetName });
         return false;
       }
       
-      this.datasets.delete(datasetName);
+      datasets.splice(existingIndex, 1);
+      this.writeJsonFile(this.datasetsPath, datasets);
+      
       logger.info('Dataset deleted successfully', { datasetName });
       return true;
     } catch (error) {
@@ -289,11 +265,14 @@ class SurrealDBService {
     logger.debug('Fetching database statistics');
     
     try {
+      const dashboards = this.readJsonFile(this.dashboardsPath);
+      const datasets = this.readJsonFile(this.datasetsPath);
+      
       return {
-        dashboardCount: this.dashboards.size,
-        datasetCount: this.datasets.size,
+        dashboardCount: dashboards.length,
+        datasetCount: datasets.length,
         lastUpdated: new Date().toISOString(),
-        database: 'SurrealDB (In-Memory)'
+        database: 'JSON File Storage'
       };
     } catch (error) {
       logger.error('Failed to fetch database statistics', { error: error.message });
@@ -306,26 +285,30 @@ class SurrealDBService {
     try {
       await this.initialize();
       
+      const dashboards = this.readJsonFile(this.dashboardsPath);
+      const datasets = this.readJsonFile(this.datasetsPath);
+      
       return {
         status: 'healthy',
-        message: 'SurrealDB-compatible service is healthy',
-        database: 'SurrealDB (In-Memory)',
-        namespace: config.database.namespace,
-        database_name: config.database.database,
-        connected: this.connected,
-        dashboardCount: this.dashboards.size,
-        datasetCount: this.datasets.size
+        message: 'JSON File Storage service is healthy',
+        database: 'JSON File Storage',
+        storage_path: config.storage.dataDir,
+        dashboardCount: dashboards.length,
+        datasetCount: datasets.length,
+        files: {
+          dashboards: this.dashboardsPath,
+          datasets: this.datasetsPath
+        }
       };
     } catch (error) {
       logger.error('Database health check failed', { error: error.message });
       return {
         status: 'unhealthy',
         message: error.message,
-        database: 'SurrealDB (In-Memory)',
-        connected: this.connected
+        database: 'JSON File Storage'
       };
     }
   }
 }
 
-module.exports = new SurrealDBService();
+module.exports = new JsonFileStorageService();
