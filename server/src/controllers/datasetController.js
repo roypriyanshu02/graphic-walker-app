@@ -41,14 +41,25 @@ class DatasetController {
         throw new ValidationError('Stored procedure name cannot exceed 100 characters', 'sp');
       }
 
-      if (dataset.csvPath && dataset.csvPath.length > 500) {
-        throw new ValidationError('CSV path cannot exceed 500 characters', 'csvPath');
+      // Validate JSON data size (limit to 50MB)
+      if (dataset.jsonData) {
+        const jsonSize = Buffer.byteLength(typeof dataset.jsonData === 'string' ? dataset.jsonData : JSON.stringify(dataset.jsonData), 'utf8');
+        if (jsonSize > 50 * 1024 * 1024) {
+          throw new ValidationError('JSON data size cannot exceed 50MB', 'jsonData');
+        }
       }
 
-      // If CSV path is provided, validate file exists
-      if (dataset.csvPath && dataset.isItFromCsv) {
-        if (!fs.existsSync(dataset.csvPath)) {
-          throw new ValidationError('CSV file does not exist at the specified path', 'csvPath');
+      // Validate JSON data if provided
+      if (dataset.jsonData) {
+        try {
+          // Ensure jsonData is valid JSON
+          if (typeof dataset.jsonData === 'string') {
+            JSON.parse(dataset.jsonData);
+          } else if (!Array.isArray(dataset.jsonData)) {
+            throw new Error('JSON data must be an array');
+          }
+        } catch (jsonError) {
+          throw new ValidationError('Invalid JSON data format', 'jsonData');
         }
       }
 
@@ -98,27 +109,62 @@ class DatasetController {
         throw new ValidationError(`Dataset '${datasetName}' already exists`, 'datasetName');
       }
 
-      // Create dataset entry
+      // Convert CSV to JSON
+      let jsonData = [];
+      let headers = [];
+      let rowCount = 0;
+      let columnCount = 0;
+
+      try {
+        jsonData = await csvService.readCsvData(file.path);
+        if (jsonData.length > 0) {
+          headers = Object.keys(jsonData[0]);
+          rowCount = jsonData.length;
+          columnCount = headers.length;
+        }
+        logger.info('CSV converted to JSON successfully', {
+          datasetName: datasetName.trim(),
+          rowCount,
+          columnCount
+        });
+      } catch (csvError) {
+        // Clean up uploaded file
+        fs.unlinkSync(file.path);
+        logger.error('Failed to convert CSV to JSON', { 
+          error: csvError.message,
+          fileName: file.originalname 
+        });
+        throw new ValidationError(`Failed to process CSV file: ${csvError.message}`, 'file');
+      }
+
+      // Create dataset entry with JSON data
       const dataset = {
         datasetName: datasetName.trim(),
-        csvPath: file.path,
-        isItFromCsv: true,
-        sp: '',
-        fileName: file.originalname,
-        fileSize: file.size,
-        mimeType: file.mimetype
+        jsonData: jsonData,
+        originalFileName: file.originalname,
+        originalFileSize: file.size,
+        mimeType: 'application/json',
+        rowCount: rowCount,
+        columnCount: columnCount,
+        headers: headers,
+        sp: ''
       };
 
       const savedDataset = await dataService.saveDataset(dataset);
 
+      // Clean up uploaded file since we've stored the data in the database
+      fs.unlinkSync(file.path);
+      logger.debug('Cleaned up uploaded CSV file', { filePath: file.path });
+
       res.status(200).json({
         success: true,
-        message: 'File uploaded successfully',
+        message: 'File uploaded and converted to JSON successfully',
         data: {
           dataset: savedDataset,
-          filePath: file.path,
-          fileName: file.originalname,
-          fileSize: file.size
+          originalFileName: file.originalname,
+          originalFileSize: file.size,
+          rowCount: rowCount,
+          columnCount: columnCount
         }
       });
     } catch (error) {
@@ -197,42 +243,61 @@ class DatasetController {
         });
       }
 
-      if (!dataset.isItFromCsv || !dataset.csvPath) {
-        throw new ValidationError('Dataset is not configured for CSV data or CSV path is missing', 'csvPath');
+      if (!dataset.jsonData) {
+        throw new ValidationError('Dataset does not contain JSON data', 'jsonData');
       }
 
       try {
-        let result;
+        // Parse JSON data from database
+        const jsonData = typeof dataset.jsonData === 'string' 
+          ? JSON.parse(dataset.jsonData) 
+          : dataset.jsonData;
         
         if (page && limit) {
           // Return paginated data
-          result = await csvService.readCsvPaginated(dataset.csvPath, page, limit);
+          const pageNum = Math.max(1, parseInt(page));
+          const limitNum = Math.max(1, parseInt(limit));
+          const startIndex = (pageNum - 1) * limitNum;
+          const endIndex = startIndex + limitNum;
+          
+          const paginatedData = jsonData.slice(startIndex, endIndex);
+          
+          const pagination = {
+            page: pageNum,
+            limit: limitNum,
+            totalRows: jsonData.length,
+            totalPages: Math.ceil(jsonData.length / limitNum),
+            hasNext: endIndex < jsonData.length,
+            hasPrev: pageNum > 1,
+            startRow: startIndex + 1,
+            endRow: Math.min(endIndex, jsonData.length)
+          };
+          
           res.status(200).json({
             success: true,
             data: {
               dataset: dataset,
-              records: result.data,
-              pagination: result.pagination
+              records: paginatedData,
+              pagination: pagination
             }
           });
         } else {
           // Return all data
-          const data = await csvService.readCsvData(dataset.csvPath);
           res.status(200).json({
             success: true,
             data: {
               dataset: dataset,
-              records: data,
-              recordCount: data.length
+              records: jsonData,
+              recordCount: jsonData.length
             }
           });
         }
-      } catch (csvError) {
-        logger.error('Failed to read CSV data', { 
-          error: csvError.message,
-          csvPath: dataset.csvPath 
+      } catch (parseError) {
+        logger.error('Failed to parse JSON data', { 
+          error: parseError.message,
+          datasetName: name 
         });
-        throw new Error(`Failed to read CSV data: ${csvError.message}`);
+        throw new Error(`Failed to parse dataset JSON data: ${parseError.message}`);
       }
     } catch (error) {
       logger.error('Failed to retrieve dataset data', { 
@@ -263,11 +328,22 @@ class DatasetController {
         });
       }
 
-      if (!dataset.isItFromCsv || !dataset.csvPath) {
-        throw new ValidationError('Dataset is not configured for CSV data', 'csvPath');
-      }
-
-      const info = await csvService.getCsvInfo(dataset.csvPath);
+      // Calculate data size for JSON data
+      const jsonDataSize = dataset.jsonData ? Buffer.byteLength(dataset.jsonData, 'utf8') : 0;
+      
+      const info = {
+        datasetName: dataset.datasetName,
+        originalFileName: dataset.originalFileName,
+        originalFileSize: dataset.originalFileSize,
+        jsonDataSize: jsonDataSize,
+        jsonDataSizeFormatted: this.formatFileSize(jsonDataSize),
+        rowCount: dataset.rowCount,
+        columnCount: dataset.columnCount,
+        headers: dataset.headers,
+        mimeType: dataset.mimeType,
+        createdAt: dataset.createdAt,
+        updatedAt: dataset.updatedAt
+      };
       
       res.status(200).json({
         success: true,
@@ -304,12 +380,7 @@ class DatasetController {
         });
       }
 
-      // Delete the CSV file if it exists
-      if (dataset.csvPath && fs.existsSync(dataset.csvPath)) {
-        fs.unlinkSync(dataset.csvPath);
-        logger.info('Deleted CSV file', { csvPath: dataset.csvPath });
-      }
-
+      // Delete the dataset from database (JSON data is stored in database)
       const deleted = await dataService.deleteDataset(name);
 
       res.status(200).json({
@@ -323,6 +394,17 @@ class DatasetController {
       });
       next(error);
     }
+  }
+
+  // Utility method to format file size
+  formatFileSize(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   }
 }
 

@@ -84,11 +84,13 @@ class SQLiteService {
         CREATE TABLE IF NOT EXISTS datasets (
           id TEXT PRIMARY KEY,
           dataset_name TEXT UNIQUE NOT NULL,
-          csv_path TEXT NOT NULL,
-          is_it_from_csv BOOLEAN DEFAULT 1,
-          file_name TEXT DEFAULT '',
-          file_size INTEGER DEFAULT 0,
-          mime_type TEXT DEFAULT 'text/csv',
+          json_data TEXT NOT NULL,
+          original_file_name TEXT DEFAULT '',
+          original_file_size INTEGER DEFAULT 0,
+          mime_type TEXT DEFAULT 'application/json',
+          row_count INTEGER DEFAULT 0,
+          column_count INTEGER DEFAULT 0,
+          headers TEXT DEFAULT '[]',
           sp TEXT DEFAULT '',
           created_at TEXT NOT NULL,
           updated_at TEXT NOT NULL
@@ -109,64 +111,6 @@ class SQLiteService {
         )
       `;
 
-      // Create user_settings table
-      const createUserSettingsTable = `
-        CREATE TABLE IF NOT EXISTS user_settings (
-          id TEXT PRIMARY KEY,
-          user_id TEXT NOT NULL,
-          setting_key TEXT NOT NULL,
-          setting_value TEXT NOT NULL,
-          setting_type TEXT DEFAULT 'string',
-          is_global BOOLEAN DEFAULT 0,
-          created_at TEXT NOT NULL,
-          updated_at TEXT NOT NULL,
-          FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
-          UNIQUE(user_id, setting_key)
-        )
-      `;
-
-      // Create user_groups table for shared settings
-      const createUserGroupsTable = `
-        CREATE TABLE IF NOT EXISTS user_groups (
-          id TEXT PRIMARY KEY,
-          group_name TEXT UNIQUE NOT NULL,
-          description TEXT DEFAULT '',
-          created_by TEXT NOT NULL,
-          created_at TEXT NOT NULL,
-          updated_at TEXT NOT NULL,
-          FOREIGN KEY (created_by) REFERENCES users (id) ON DELETE CASCADE
-        )
-      `;
-
-      // Create user_group_members table
-      const createUserGroupMembersTable = `
-        CREATE TABLE IF NOT EXISTS user_group_members (
-          id TEXT PRIMARY KEY,
-          group_id TEXT NOT NULL,
-          user_id TEXT NOT NULL,
-          role TEXT DEFAULT 'member',
-          joined_at TEXT NOT NULL,
-          FOREIGN KEY (group_id) REFERENCES user_groups (id) ON DELETE CASCADE,
-          FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
-          UNIQUE(group_id, user_id)
-        )
-      `;
-
-      // Create group_settings table
-      const createGroupSettingsTable = `
-        CREATE TABLE IF NOT EXISTS group_settings (
-          id TEXT PRIMARY KEY,
-          group_id TEXT NOT NULL,
-          setting_key TEXT NOT NULL,
-          setting_value TEXT NOT NULL,
-          setting_type TEXT DEFAULT 'string',
-          created_at TEXT NOT NULL,
-          updated_at TEXT NOT NULL,
-          FOREIGN KEY (group_id) REFERENCES user_groups (id) ON DELETE CASCADE,
-          UNIQUE(group_id, setting_key)
-        )
-      `;
-
       // Create indexes for better performance
       const createIndexes = [
         'CREATE INDEX IF NOT EXISTS idx_users_email ON users (email)',
@@ -175,24 +119,13 @@ class SQLiteService {
         'CREATE INDEX IF NOT EXISTS idx_dashboards_name ON dashboards (dashboard_name)',
         'CREATE INDEX IF NOT EXISTS idx_dashboards_dataset ON dashboards (dataset_name)',
         'CREATE INDEX IF NOT EXISTS idx_datasets_created_at ON datasets (created_at)',
-        'CREATE INDEX IF NOT EXISTS idx_dashboards_created_at ON dashboards (created_at)',
-        'CREATE INDEX IF NOT EXISTS idx_user_settings_user_id ON user_settings (user_id)',
-        'CREATE INDEX IF NOT EXISTS idx_user_settings_key ON user_settings (setting_key)',
-        'CREATE INDEX IF NOT EXISTS idx_user_groups_name ON user_groups (group_name)',
-        'CREATE INDEX IF NOT EXISTS idx_user_group_members_group_id ON user_group_members (group_id)',
-        'CREATE INDEX IF NOT EXISTS idx_user_group_members_user_id ON user_group_members (user_id)',
-        'CREATE INDEX IF NOT EXISTS idx_group_settings_group_id ON group_settings (group_id)',
-        'CREATE INDEX IF NOT EXISTS idx_group_settings_key ON group_settings (setting_key)'
+        'CREATE INDEX IF NOT EXISTS idx_dashboards_created_at ON dashboards (created_at)'
       ];
 
       // Execute table creation
       this.db.run(createUsersTable);
       this.db.run(createDatasetsTable);
       this.db.run(createDashboardsTable);
-      this.db.run(createUserSettingsTable);
-      this.db.run(createUserGroupsTable);
-      this.db.run(createUserGroupMembersTable);
-      this.db.run(createGroupSettingsTable);
       
       // Execute index creation
       createIndexes.forEach(indexSql => {
@@ -420,11 +353,13 @@ class SQLiteService {
         SELECT 
           id,
           dataset_name as datasetName,
-          csv_path as csvPath,
-          is_it_from_csv as isItFromCsv,
-          file_name as fileName,
-          file_size as fileSize,
+          json_data as jsonData,
+          original_file_name as originalFileName,
+          original_file_size as originalFileSize,
           mime_type as mimeType,
+          row_count as rowCount,
+          column_count as columnCount,
+          headers,
           sp,
           created_at as createdAt,
           updated_at as updatedAt
@@ -439,7 +374,7 @@ class SQLiteService {
         const row = stmt.getAsObject();
         datasets.push({
           ...row,
-          isItFromCsv: Boolean(row.isItFromCsv)
+          headers: JSON.parse(row.headers || '[]')
         });
       }
       
@@ -460,11 +395,13 @@ class SQLiteService {
         SELECT 
           id,
           dataset_name as datasetName,
-          csv_path as csvPath,
-          is_it_from_csv as isItFromCsv,
-          file_name as fileName,
-          file_size as fileSize,
+          json_data as jsonData,
+          original_file_name as originalFileName,
+          original_file_size as originalFileSize,
           mime_type as mimeType,
+          row_count as rowCount,
+          column_count as columnCount,
+          headers,
           sp,
           created_at as createdAt,
           updated_at as updatedAt
@@ -480,7 +417,7 @@ class SQLiteService {
         stmt.free();
         return {
           ...row,
-          isItFromCsv: Boolean(row.isItFromCsv)
+          headers: JSON.parse(row.headers || '[]')
         };
       } else {
         stmt.free();
@@ -513,11 +450,13 @@ class SQLiteService {
       const datasetData = {
         id: existing ? existing.id : uuidv4(),
         dataset_name: dataset.datasetName,
-        csv_path: dataset.csvPath,
-        is_it_from_csv: dataset.isItFromCsv !== undefined ? (dataset.isItFromCsv ? 1 : 0) : 1,
-        file_name: dataset.fileName || '',
-        file_size: dataset.fileSize || 0,
-        mime_type: dataset.mimeType || 'text/csv',
+        json_data: typeof dataset.jsonData === 'string' ? dataset.jsonData : JSON.stringify(dataset.jsonData || []),
+        original_file_name: dataset.originalFileName || '',
+        original_file_size: dataset.originalFileSize || 0,
+        mime_type: dataset.mimeType || 'application/json',
+        row_count: dataset.rowCount || 0,
+        column_count: dataset.columnCount || 0,
+        headers: JSON.stringify(dataset.headers || []),
         sp: dataset.sp || '',
         created_at: existing ? existing.created_at : now,
         updated_at: now
@@ -527,17 +466,19 @@ class SQLiteService {
         // Update existing dataset
         const updateSql = `
           UPDATE datasets 
-          SET csv_path = ?, is_it_from_csv = ?, file_name = ?, file_size = ?, mime_type = ?, sp = ?, updated_at = ?
+          SET json_data = ?, original_file_name = ?, original_file_size = ?, mime_type = ?, row_count = ?, column_count = ?, headers = ?, sp = ?, updated_at = ?
           WHERE dataset_name = ?
         `;
         
         const updateStmt = this.db.prepare(updateSql);
         updateStmt.run([
-          datasetData.csv_path,
-          datasetData.is_it_from_csv,
-          datasetData.file_name,
-          datasetData.file_size,
+          datasetData.json_data,
+          datasetData.original_file_name,
+          datasetData.original_file_size,
           datasetData.mime_type,
+          datasetData.row_count,
+          datasetData.column_count,
+          datasetData.headers,
           datasetData.sp,
           datasetData.updated_at,
           datasetData.dataset_name
@@ -548,19 +489,21 @@ class SQLiteService {
       } else {
         // Insert new dataset
         const insertSql = `
-          INSERT INTO datasets (id, dataset_name, csv_path, is_it_from_csv, file_name, file_size, mime_type, sp, created_at, updated_at)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          INSERT INTO datasets (id, dataset_name, json_data, original_file_name, original_file_size, mime_type, row_count, column_count, headers, sp, created_at, updated_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `;
         
         const insertStmt = this.db.prepare(insertSql);
         insertStmt.run([
           datasetData.id,
           datasetData.dataset_name,
-          datasetData.csv_path,
-          datasetData.is_it_from_csv,
-          datasetData.file_name,
-          datasetData.file_size,
+          datasetData.json_data,
+          datasetData.original_file_name,
+          datasetData.original_file_size,
           datasetData.mime_type,
+          datasetData.row_count,
+          datasetData.column_count,
+          datasetData.headers,
           datasetData.sp,
           datasetData.created_at,
           datasetData.updated_at
@@ -577,11 +520,13 @@ class SQLiteService {
       return {
         id: datasetData.id,
         datasetName: datasetData.dataset_name,
-        csvPath: datasetData.csv_path,
-        isItFromCsv: Boolean(datasetData.is_it_from_csv),
-        fileName: datasetData.file_name,
-        fileSize: datasetData.file_size,
+        jsonData: datasetData.json_data,
+        originalFileName: datasetData.original_file_name,
+        originalFileSize: datasetData.original_file_size,
         mimeType: datasetData.mime_type,
+        rowCount: datasetData.row_count,
+        columnCount: datasetData.column_count,
+        headers: JSON.parse(datasetData.headers),
         sp: datasetData.sp,
         createdAt: datasetData.created_at,
         updatedAt: datasetData.updated_at
@@ -682,6 +627,171 @@ class SQLiteService {
         message: error.message,
         database: 'SQLite'
       };
+    }
+  }
+
+  // Migration method to convert CSV-based datasets to JSON-based datasets
+  async migrateCsvToJson() {
+    await this.initialize();
+    logger.info('Starting migration from CSV-based to JSON-based datasets');
+    
+    try {
+      // Check if we need to migrate (look for old csv_path column)
+      const checkColumnSql = "PRAGMA table_info(datasets)";
+      const stmt = this.db.prepare(checkColumnSql);
+      const columns = [];
+      
+      while (stmt.step()) {
+        const row = stmt.getAsObject();
+        columns.push(row.name);
+      }
+      stmt.free();
+      
+      const hasCsvPath = columns.includes('csv_path');
+      const hasJsonData = columns.includes('json_data');
+      
+      if (!hasCsvPath || hasJsonData) {
+        logger.info('No migration needed - database schema is already updated');
+        return { success: true, migrated: 0 };
+      }
+      
+      logger.info('Old schema detected, starting migration...');
+      
+      // Get all existing datasets with old schema
+      const oldDatasetsSql = `
+        SELECT 
+          id, dataset_name, csv_path, is_it_from_csv, file_name, file_size, mime_type, sp, created_at, updated_at
+        FROM datasets
+      `;
+      
+      const oldStmt = this.db.prepare(oldDatasetsSql);
+      const oldDatasets = [];
+      
+      while (oldStmt.step()) {
+        oldDatasets.push(oldStmt.getAsObject());
+      }
+      oldStmt.free();
+      
+      logger.info(`Found ${oldDatasets.length} datasets to migrate`);
+      
+      // Create new table with updated schema
+      const createNewTableSql = `
+        CREATE TABLE datasets_new (
+          id TEXT PRIMARY KEY,
+          dataset_name TEXT UNIQUE NOT NULL,
+          json_data TEXT NOT NULL,
+          original_file_name TEXT DEFAULT '',
+          original_file_size INTEGER DEFAULT 0,
+          mime_type TEXT DEFAULT 'application/json',
+          row_count INTEGER DEFAULT 0,
+          column_count INTEGER DEFAULT 0,
+          headers TEXT DEFAULT '[]',
+          sp TEXT DEFAULT '',
+          created_at TEXT NOT NULL,
+          updated_at TEXT NOT NULL
+        )
+      `;
+      
+      this.db.run(createNewTableSql);
+      
+      // Migrate each dataset
+      const csvService = require('./csvService');
+      let migratedCount = 0;
+      
+      for (const oldDataset of oldDatasets) {
+        try {
+          let jsonData = [];
+          let headers = [];
+          let rowCount = 0;
+          let columnCount = 0;
+          
+          // Try to read CSV data if file exists
+          if (oldDataset.csv_path && require('fs').existsSync(oldDataset.csv_path)) {
+            try {
+              jsonData = await csvService.readCsvData(oldDataset.csv_path);
+              if (jsonData.length > 0) {
+                headers = Object.keys(jsonData[0]);
+                rowCount = jsonData.length;
+                columnCount = headers.length;
+              }
+              logger.info(`Converted CSV to JSON for dataset: ${oldDataset.dataset_name}`, {
+                rowCount,
+                columnCount
+              });
+            } catch (csvError) {
+              logger.warn(`Failed to read CSV file for dataset ${oldDataset.dataset_name}, using empty data`, {
+                csvPath: oldDataset.csv_path,
+                error: csvError.message
+              });
+            }
+          } else {
+            logger.warn(`CSV file not found for dataset ${oldDataset.dataset_name}, using empty data`, {
+              csvPath: oldDataset.csv_path
+            });
+          }
+          
+          // Insert into new table
+          const insertSql = `
+            INSERT INTO datasets_new (id, dataset_name, json_data, original_file_name, original_file_size, mime_type, row_count, column_count, headers, sp, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          `;
+          
+          const insertStmt = this.db.prepare(insertSql);
+          insertStmt.run([
+            oldDataset.id,
+            oldDataset.dataset_name,
+            JSON.stringify(jsonData),
+            oldDataset.file_name || '',
+            oldDataset.file_size || 0,
+            'application/json',
+            rowCount,
+            columnCount,
+            JSON.stringify(headers),
+            oldDataset.sp || '',
+            oldDataset.created_at,
+            oldDataset.updated_at
+          ]);
+          insertStmt.free();
+          
+          migratedCount++;
+          logger.info(`Migrated dataset: ${oldDataset.dataset_name}`);
+          
+        } catch (error) {
+          logger.error(`Failed to migrate dataset ${oldDataset.dataset_name}`, { error: error.message });
+        }
+      }
+      
+      // Replace old table with new table
+      this.db.run('DROP TABLE datasets');
+      this.db.run('ALTER TABLE datasets_new RENAME TO datasets');
+      
+      // Recreate indexes
+      const createIndexes = [
+        'CREATE INDEX IF NOT EXISTS idx_datasets_name ON datasets (dataset_name)',
+        'CREATE INDEX IF NOT EXISTS idx_datasets_created_at ON datasets (created_at)'
+      ];
+      
+      createIndexes.forEach(indexSql => {
+        this.db.run(indexSql);
+      });
+      
+      // Save database to file
+      await this.saveDatabase();
+      
+      logger.info('Migration from CSV to JSON completed successfully', {
+        totalDatasets: oldDatasets.length,
+        migratedCount
+      });
+      
+      return {
+        success: true,
+        totalDatasets: oldDatasets.length,
+        migratedCount
+      };
+      
+    } catch (error) {
+      logger.error('Migration from CSV to JSON failed', { error: error.message });
+      throw error;
     }
   }
 
@@ -872,532 +982,6 @@ class SQLiteService {
       }
     } catch (error) {
       logger.error('Failed to fetch user by ID', { userId, error: error.message });
-      throw error;
-    }
-  }
-
-  // User Settings methods
-  async getUserSettings(userId) {
-    await this.initialize();
-    logger.debug('Fetching user settings', { userId });
-    
-    try {
-      const sql = `
-        SELECT 
-          id,
-          setting_key as key,
-          setting_value as value,
-          setting_type as type,
-          is_global as isGlobal,
-          created_at as createdAt,
-          updated_at as updatedAt
-        FROM user_settings 
-        WHERE user_id = ?
-        ORDER BY setting_key
-      `;
-      
-      const stmt = this.db.prepare(sql);
-      stmt.bind([userId]);
-      
-      const settings = {};
-      while (stmt.step()) {
-        const row = stmt.getAsObject();
-        // Parse value based on type
-        let parsedValue = row.value;
-        try {
-          switch (row.type) {
-            case 'boolean':
-              parsedValue = row.value === 'true';
-              break;
-            case 'number':
-              parsedValue = parseFloat(row.value);
-              break;
-            case 'json':
-              parsedValue = JSON.parse(row.value);
-              break;
-            default:
-              parsedValue = row.value;
-          }
-        } catch (e) {
-          logger.warn('Failed to parse setting value', { key: row.key, value: row.value, type: row.type });
-        }
-        
-        settings[row.key] = {
-          value: parsedValue,
-          type: row.type,
-          isGlobal: Boolean(row.isGlobal),
-          createdAt: row.createdAt,
-          updatedAt: row.updatedAt
-        };
-      }
-      
-      stmt.free();
-      return settings;
-    } catch (error) {
-      logger.error('Failed to fetch user settings', { userId, error: error.message });
-      throw error;
-    }
-  }
-
-  async getUserSetting(userId, settingKey) {
-    await this.initialize();
-    logger.debug('Fetching user setting', { userId, settingKey });
-    
-    try {
-      const sql = `
-        SELECT 
-          setting_value as value,
-          setting_type as type,
-          is_global as isGlobal,
-          created_at as createdAt,
-          updated_at as updatedAt
-        FROM user_settings 
-        WHERE user_id = ? AND setting_key = ?
-      `;
-      
-      const stmt = this.db.prepare(sql);
-      stmt.bind([userId, settingKey]);
-      
-      if (stmt.step()) {
-        const row = stmt.getAsObject();
-        stmt.free();
-        
-        // Parse value based on type
-        let parsedValue = row.value;
-        try {
-          switch (row.type) {
-            case 'boolean':
-              parsedValue = row.value === 'true';
-              break;
-            case 'number':
-              parsedValue = parseFloat(row.value);
-              break;
-            case 'json':
-              parsedValue = JSON.parse(row.value);
-              break;
-            default:
-              parsedValue = row.value;
-          }
-        } catch (e) {
-          logger.warn('Failed to parse setting value', { key: settingKey, value: row.value, type: row.type });
-        }
-        
-        return {
-          value: parsedValue,
-          type: row.type,
-          isGlobal: Boolean(row.isGlobal),
-          createdAt: row.createdAt,
-          updatedAt: row.updatedAt
-        };
-      } else {
-        stmt.free();
-        return null;
-      }
-    } catch (error) {
-      logger.error('Failed to fetch user setting', { userId, settingKey, error: error.message });
-      throw error;
-    }
-  }
-
-  async saveUserSetting(userId, settingKey, settingValue, settingType = 'string', isGlobal = false) {
-    await this.initialize();
-    logger.info('Saving user setting', { userId, settingKey, settingType });
-    
-    try {
-      const now = new Date().toISOString();
-      
-      // Convert value to string for storage
-      let stringValue;
-      switch (settingType) {
-        case 'boolean':
-          stringValue = settingValue ? 'true' : 'false';
-          break;
-        case 'number':
-          stringValue = settingValue.toString();
-          break;
-        case 'json':
-          stringValue = JSON.stringify(settingValue);
-          break;
-        default:
-          stringValue = settingValue.toString();
-      }
-      
-      // Check if setting exists
-      const existingStmt = this.db.prepare('SELECT id, created_at FROM user_settings WHERE user_id = ? AND setting_key = ?');
-      existingStmt.bind([userId, settingKey]);
-      
-      let existing = null;
-      if (existingStmt.step()) {
-        existing = existingStmt.getAsObject();
-      }
-      existingStmt.free();
-      
-      if (existing) {
-        // Update existing setting
-        const updateSql = `
-          UPDATE user_settings 
-          SET setting_value = ?, setting_type = ?, is_global = ?, updated_at = ?
-          WHERE user_id = ? AND setting_key = ?
-        `;
-        
-        const updateStmt = this.db.prepare(updateSql);
-        updateStmt.run([
-          stringValue,
-          settingType,
-          isGlobal ? 1 : 0,
-          now,
-          userId,
-          settingKey
-        ]);
-        updateStmt.free();
-        
-        logger.info('User setting updated', { userId, settingKey });
-      } else {
-        // Insert new setting
-        const insertSql = `
-          INSERT INTO user_settings (id, user_id, setting_key, setting_value, setting_type, is_global, created_at, updated_at)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        `;
-        
-        const insertStmt = this.db.prepare(insertSql);
-        insertStmt.run([
-          uuidv4(),
-          userId,
-          settingKey,
-          stringValue,
-          settingType,
-          isGlobal ? 1 : 0,
-          now,
-          now
-        ]);
-        insertStmt.free();
-        
-        logger.info('New user setting created', { userId, settingKey });
-      }
-      
-      // Save database to file
-      await this.saveDatabase();
-      
-      return {
-        key: settingKey,
-        value: settingValue,
-        type: settingType,
-        isGlobal: isGlobal,
-        updatedAt: now
-      };
-    } catch (error) {
-      logger.error('Failed to save user setting', { userId, settingKey, error: error.message });
-      throw error;
-    }
-  }
-
-  async saveUserSettings(userId, settings) {
-    await this.initialize();
-    logger.info('Saving multiple user settings', { userId, settingsCount: Object.keys(settings).length });
-    
-    try {
-      const results = [];
-      
-      for (const [key, settingData] of Object.entries(settings)) {
-        const { value, type = 'string', isGlobal = false } = settingData;
-        const result = await this.saveUserSetting(userId, key, value, type, isGlobal);
-        results.push(result);
-      }
-      
-      logger.info('Multiple user settings saved successfully', { userId, count: results.length });
-      return results;
-    } catch (error) {
-      logger.error('Failed to save multiple user settings', { userId, error: error.message });
-      throw error;
-    }
-  }
-
-  async deleteUserSetting(userId, settingKey) {
-    await this.initialize();
-    logger.info('Deleting user setting', { userId, settingKey });
-    
-    try {
-      const stmt = this.db.prepare('DELETE FROM user_settings WHERE user_id = ? AND setting_key = ?');
-      const result = stmt.run([userId, settingKey]);
-      stmt.free();
-      
-      if (result.changes === 0) {
-        logger.warn('User setting not found for deletion', { userId, settingKey });
-        return false;
-      }
-      
-      // Save database to file
-      await this.saveDatabase();
-      
-      logger.info('User setting deleted successfully', { userId, settingKey });
-      return true;
-    } catch (error) {
-      logger.error('Failed to delete user setting', { userId, settingKey, error: error.message });
-      throw error;
-    }
-  }
-
-  // User Groups methods
-  async createUserGroup(groupData, createdBy) {
-    await this.initialize();
-    logger.info('Creating user group', { groupName: groupData.groupName, createdBy });
-    
-    try {
-      const now = new Date().toISOString();
-      const groupId = uuidv4();
-      
-      const insertSql = `
-        INSERT INTO user_groups (id, group_name, description, created_by, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?)
-      `;
-      
-      const stmt = this.db.prepare(insertSql);
-      stmt.run([
-        groupId,
-        groupData.groupName,
-        groupData.description || '',
-        createdBy,
-        now,
-        now
-      ]);
-      stmt.free();
-      
-      // Add creator as admin member
-      await this.addUserToGroup(groupId, createdBy, 'admin');
-      
-      // Save database to file
-      await this.saveDatabase();
-      
-      logger.info('User group created successfully', { groupName: groupData.groupName, groupId });
-      
-      return {
-        id: groupId,
-        groupName: groupData.groupName,
-        description: groupData.description || '',
-        createdBy: createdBy,
-        createdAt: now,
-        updatedAt: now
-      };
-    } catch (error) {
-      logger.error('Failed to create user group', { groupName: groupData.groupName, error: error.message });
-      throw error;
-    }
-  }
-
-  async addUserToGroup(groupId, userId, role = 'member') {
-    await this.initialize();
-    logger.info('Adding user to group', { groupId, userId, role });
-    
-    try {
-      const now = new Date().toISOString();
-      
-      const insertSql = `
-        INSERT INTO user_group_members (id, group_id, user_id, role, joined_at)
-        VALUES (?, ?, ?, ?, ?)
-      `;
-      
-      const stmt = this.db.prepare(insertSql);
-      stmt.run([
-        uuidv4(),
-        groupId,
-        userId,
-        role,
-        now
-      ]);
-      stmt.free();
-      
-      // Save database to file
-      await this.saveDatabase();
-      
-      logger.info('User added to group successfully', { groupId, userId, role });
-      return true;
-    } catch (error) {
-      logger.error('Failed to add user to group', { groupId, userId, error: error.message });
-      throw error;
-    }
-  }
-
-  async getUserGroups(userId) {
-    await this.initialize();
-    logger.debug('Fetching user groups', { userId });
-    
-    try {
-      const sql = `
-        SELECT 
-          ug.id,
-          ug.group_name as groupName,
-          ug.description,
-          ug.created_by as createdBy,
-          ug.created_at as createdAt,
-          ug.updated_at as updatedAt,
-          ugm.role
-        FROM user_groups ug
-        JOIN user_group_members ugm ON ug.id = ugm.group_id
-        WHERE ugm.user_id = ?
-        ORDER BY ug.group_name
-      `;
-      
-      const stmt = this.db.prepare(sql);
-      stmt.bind([userId]);
-      
-      const groups = [];
-      while (stmt.step()) {
-        const row = stmt.getAsObject();
-        groups.push(row);
-      }
-      
-      stmt.free();
-      return groups;
-    } catch (error) {
-      logger.error('Failed to fetch user groups', { userId, error: error.message });
-      throw error;
-    }
-  }
-
-  async getGroupSettings(groupId) {
-    await this.initialize();
-    logger.debug('Fetching group settings', { groupId });
-    
-    try {
-      const sql = `
-        SELECT 
-          setting_key as key,
-          setting_value as value,
-          setting_type as type,
-          created_at as createdAt,
-          updated_at as updatedAt
-        FROM group_settings 
-        WHERE group_id = ?
-        ORDER BY setting_key
-      `;
-      
-      const stmt = this.db.prepare(sql);
-      stmt.bind([groupId]);
-      
-      const settings = {};
-      while (stmt.step()) {
-        const row = stmt.getAsObject();
-        // Parse value based on type
-        let parsedValue = row.value;
-        try {
-          switch (row.type) {
-            case 'boolean':
-              parsedValue = row.value === 'true';
-              break;
-            case 'number':
-              parsedValue = parseFloat(row.value);
-              break;
-            case 'json':
-              parsedValue = JSON.parse(row.value);
-              break;
-            default:
-              parsedValue = row.value;
-          }
-        } catch (e) {
-          logger.warn('Failed to parse group setting value', { key: row.key, value: row.value, type: row.type });
-        }
-        
-        settings[row.key] = {
-          value: parsedValue,
-          type: row.type,
-          createdAt: row.createdAt,
-          updatedAt: row.updatedAt
-        };
-      }
-      
-      stmt.free();
-      return settings;
-    } catch (error) {
-      logger.error('Failed to fetch group settings', { groupId, error: error.message });
-      throw error;
-    }
-  }
-
-  async saveGroupSetting(groupId, settingKey, settingValue, settingType = 'string') {
-    await this.initialize();
-    logger.info('Saving group setting', { groupId, settingKey, settingType });
-    
-    try {
-      const now = new Date().toISOString();
-      
-      // Convert value to string for storage
-      let stringValue;
-      switch (settingType) {
-        case 'boolean':
-          stringValue = settingValue ? 'true' : 'false';
-          break;
-        case 'number':
-          stringValue = settingValue.toString();
-          break;
-        case 'json':
-          stringValue = JSON.stringify(settingValue);
-          break;
-        default:
-          stringValue = settingValue.toString();
-      }
-      
-      // Check if setting exists
-      const existingStmt = this.db.prepare('SELECT id, created_at FROM group_settings WHERE group_id = ? AND setting_key = ?');
-      existingStmt.bind([groupId, settingKey]);
-      
-      let existing = null;
-      if (existingStmt.step()) {
-        existing = existingStmt.getAsObject();
-      }
-      existingStmt.free();
-      
-      if (existing) {
-        // Update existing setting
-        const updateSql = `
-          UPDATE group_settings 
-          SET setting_value = ?, setting_type = ?, updated_at = ?
-          WHERE group_id = ? AND setting_key = ?
-        `;
-        
-        const updateStmt = this.db.prepare(updateSql);
-        updateStmt.run([
-          stringValue,
-          settingType,
-          now,
-          groupId,
-          settingKey
-        ]);
-        updateStmt.free();
-        
-        logger.info('Group setting updated', { groupId, settingKey });
-      } else {
-        // Insert new setting
-        const insertSql = `
-          INSERT INTO group_settings (id, group_id, setting_key, setting_value, setting_type, created_at, updated_at)
-          VALUES (?, ?, ?, ?, ?, ?, ?)
-        `;
-        
-        const insertStmt = this.db.prepare(insertSql);
-        insertStmt.run([
-          uuidv4(),
-          groupId,
-          settingKey,
-          stringValue,
-          settingType,
-          now,
-          now
-        ]);
-        insertStmt.free();
-        
-        logger.info('New group setting created', { groupId, settingKey });
-      }
-      
-      // Save database to file
-      await this.saveDatabase();
-      
-      return {
-        key: settingKey,
-        value: settingValue,
-        type: settingType,
-        updatedAt: now
-      };
-    } catch (error) {
-      logger.error('Failed to save group setting', { groupId, settingKey, error: error.message });
       throw error;
     }
   }

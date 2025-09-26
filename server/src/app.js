@@ -15,6 +15,10 @@ class App {
     this.app = express();
     this.setupMiddleware();
     this.ensureDirectories();
+    // Run migrations asynchronously without blocking app startup
+    this.runMigrations().catch(error => {
+      logger.error('Migration failed during app initialization', { error: error.message });
+    });
     this.setupRoutes();
     this.setupErrorHandling();
   }
@@ -58,6 +62,30 @@ class App {
         logger.info('Created directory', { path: dir });
       }
     });
+  }
+
+  async runMigrations() {
+    try {
+      logger.info('Running database migrations...');
+      const sqliteService = require('./services/sqliteService');
+      
+      // Run CSV to JSON migration
+      const migrationResult = await sqliteService.migrateCsvToJson();
+      
+      if (migrationResult.success) {
+        if (migrationResult.migratedCount > 0) {
+          logger.info('Database migration completed successfully', {
+            totalDatasets: migrationResult.totalDatasets,
+            migratedCount: migrationResult.migratedCount
+          });
+        } else {
+          logger.info('Database schema is up to date, no migration needed');
+        }
+      }
+    } catch (error) {
+      logger.error('Database migration failed', { error: error.message });
+      // Don't fail the app startup, just log the error
+    }
   }
 
   setupRoutes() {
