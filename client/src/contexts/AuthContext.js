@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import authAPI from '../services/authApi';
 
 const AuthContext = createContext();
 
@@ -17,32 +18,85 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     // Check if user is already authenticated on app start
-    const checkAuthStatus = () => {
-      const authStatus = localStorage.getItem('isAuthenticated');
-      const userData = localStorage.getItem('user');
-      
-      if (authStatus === 'true' && userData) {
-        setIsAuthenticated(true);
-        setUser(JSON.parse(userData));
+    const checkAuthStatus = async () => {
+      try {
+        const token = authAPI.getToken();
+        
+        if (token) {
+          // Verify token with backend
+          const response = await authAPI.verifyToken();
+          
+          if (response.success && response.data.user) {
+            setIsAuthenticated(true);
+            setUser(response.data.user);
+            localStorage.setItem('isAuthenticated', 'true');
+            localStorage.setItem('user', JSON.stringify(response.data.user));
+          } else {
+            // Token is invalid, clear auth data
+            authAPI.clearAuth();
+          }
+        }
+      } catch (error) {
+        console.error('Auth check failed:', error);
+        // Clear invalid auth data
+        authAPI.clearAuth();
+      } finally {
+        setIsLoading(false);
       }
-      setIsLoading(false);
     };
 
     checkAuthStatus();
   }, []);
 
-  const login = (userData) => {
-    setIsAuthenticated(true);
-    setUser(userData);
-    localStorage.setItem('isAuthenticated', 'true');
-    localStorage.setItem('user', JSON.stringify(userData));
+  const login = async (credentials) => {
+    try {
+      const response = await authAPI.login(credentials);
+      
+      if (response.success && response.data.user) {
+        setIsAuthenticated(true);
+        setUser(response.data.user);
+        localStorage.setItem('isAuthenticated', 'true');
+        localStorage.setItem('user', JSON.stringify(response.data.user));
+        return { success: true, user: response.data.user };
+      } else {
+        throw new Error(response.message || 'Login failed');
+      }
+    } catch (error) {
+      console.error('Login failed:', error);
+      throw error;
+    }
   };
 
-  const logout = () => {
-    setIsAuthenticated(false);
-    setUser(null);
-    localStorage.removeItem('isAuthenticated');
-    localStorage.removeItem('user');
+  const register = async (userData) => {
+    try {
+      const response = await authAPI.register(userData);
+      
+      if (response.success && response.data.user) {
+        setIsAuthenticated(true);
+        setUser(response.data.user);
+        localStorage.setItem('isAuthenticated', 'true');
+        localStorage.setItem('user', JSON.stringify(response.data.user));
+        return { success: true, user: response.data.user };
+      } else {
+        throw new Error(response.message || 'Registration failed');
+      }
+    } catch (error) {
+      console.error('Registration failed:', error);
+      throw error;
+    }
+  };
+
+  const logout = async () => {
+    try {
+      await authAPI.logout();
+    } catch (error) {
+      console.error('Logout API call failed:', error);
+    } finally {
+      setIsAuthenticated(false);
+      setUser(null);
+      localStorage.removeItem('isAuthenticated');
+      localStorage.removeItem('user');
+    }
   };
 
   const value = {
@@ -50,6 +104,7 @@ export const AuthProvider = ({ children }) => {
     user,
     isLoading,
     login,
+    register,
     logout
   };
 
