@@ -3,6 +3,7 @@ const authRoutes = require('./authRoutes');
 const dashboardRoutes = require('./dashboardRoutes');
 const datasetRoutes = require('./datasetRoutes');
 const csvRoutes = require('./csvRoutes');
+const settingsRoutes = require('./settingsRoutes');
 
 const router = express.Router();
 
@@ -30,6 +31,17 @@ router.get('/', (req, res) => {
         'GET /auth/profile': 'Get user profile (requires token)',
         'GET /auth/verify': 'Verify token validity',
         'POST /auth/logout': 'Logout user'
+      },
+      settings: {
+        'GET /settings': 'Get all user settings',
+        'GET /settings/:key': 'Get specific user setting',
+        'PUT /settings/:key': 'Save/update user setting',
+        'POST /settings/bulk': 'Save multiple user settings',
+        'DELETE /settings/:key': 'Delete user setting',
+        'GET /settings/groups/my': 'Get user groups',
+        'POST /settings/groups': 'Create user group',
+        'GET /settings/groups/:groupId/settings': 'Get group settings',
+        'PUT /settings/groups/:groupId/settings/:key': 'Save group setting'
       },
       dashboards: {
         'GET /Dashboard': 'Get all dashboards',
@@ -69,6 +81,7 @@ router.get('/', (req, res) => {
 
 // Mount route modules
 router.use('/auth', authRoutes);
+router.use('/settings', settingsRoutes);
 router.use('/Dashboard', dashboardRoutes);
 router.use('/Dataset', datasetRoutes);
 router.use('/api/csv', csvRoutes);

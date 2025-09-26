@@ -1,30 +1,77 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { APP_CONFIG } from '../constants';
+import { useSettings, useUserGroups } from '../hooks/useSettings';
 
 const SettingsPage = () => {
-  const [settings, setSettings] = useState({
-    theme: 'light',
-    notifications: true,
-    autoSave: true,
-    defaultChartType: 'bar',
-    dataRefreshInterval: '5',
-    exportFormat: 'png'
-  });
+  const {
+    settings,
+    isLoading,
+    error,
+    isSaving,
+    getSetting,
+    saveSetting,
+    saveSettings,
+    resetSettings
+  } = useSettings();
+
+  const {
+    groups,
+    isLoading: groupsLoading,
+    error: groupsError,
+    createGroup
+  } = useUserGroups();
 
   const [activeSection, setActiveSection] = useState('general');
+  const [localSettings, setLocalSettings] = useState({});
+  const [hasChanges, setHasChanges] = useState(false);
+  const [saveMessage, setSaveMessage] = useState('');
+
+  // Initialize local settings when settings load
+  useEffect(() => {
+    if (!isLoading && settings) {
+      setLocalSettings(settings);
+      setHasChanges(false);
+    }
+  }, [settings, isLoading]);
 
   const handleSettingChange = (key, value) => {
-    setSettings(prev => ({
+    setLocalSettings(prev => ({
       ...prev,
       [key]: value
     }));
+    setHasChanges(true);
+    setSaveMessage(''); // Clear any previous messages
   };
 
-  const handleSave = () => {
-    // In a real app, this would save to backend
-    localStorage.setItem('userSettings', JSON.stringify(settings));
-    // Show success message (you could add this to a global state)
-    alert('Settings saved successfully!');
+  const handleSave = async () => {
+    try {
+      await saveSettings(localSettings);
+      setHasChanges(false);
+      setSaveMessage('Settings saved successfully!');
+      
+      // Clear success message after 3 seconds
+      setTimeout(() => setSaveMessage(''), 3000);
+    } catch (error) {
+      console.error('Failed to save settings:', error);
+      setSaveMessage('Failed to save settings. Please try again.');
+      
+      // Clear error message after 5 seconds
+      setTimeout(() => setSaveMessage(''), 5000);
+    }
+  };
+
+  const handleReset = async () => {
+    if (window.confirm('Are you sure you want to reset all settings to their default values?')) {
+      try {
+        await resetSettings();
+        setSaveMessage('Settings reset to defaults successfully!');
+        setTimeout(() => setSaveMessage(''), 3000);
+      } catch (error) {
+        console.error('Failed to reset settings:', error);
+        setSaveMessage('Failed to reset settings. Please try again.');
+        setTimeout(() => setSaveMessage(''), 5000);
+      }
+    }
   };
 
   const sections = [
@@ -34,6 +81,23 @@ const SettingsPage = () => {
     { id: 'export', name: 'Export', icon: 'M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' }
   ];
 
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className="page-notion p-6">
+        <div className="flex items-center justify-center min-h-96">
+          <div className="text-center">
+            <svg className="w-8 h-8 animate-spin mx-auto mb-4 text-accent-600" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <p className="text-notion-600">Loading settings...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="page-notion p-6">
       {/* Page Header */}
@@ -42,16 +106,52 @@ const SettingsPage = () => {
           <div>
             <h1 className="heading-notion text-xl mb-2">Settings</h1>
             <p className="text-notion-secondary text-sm">Manage your {APP_CONFIG.NAME} preferences</p>
+            {error && (
+              <div className="mt-2 text-sm text-red-600 bg-red-50 px-3 py-2 rounded-md">
+                {error}
+              </div>
+            )}
+            {saveMessage && (
+              <div className={`mt-2 text-sm px-3 py-2 rounded-md ${
+                saveMessage.includes('Failed') 
+                  ? 'text-red-600 bg-red-50' 
+                  : 'text-green-600 bg-green-50'
+              }`}>
+                {saveMessage}
+              </div>
+            )}
           </div>
-          <button
-            onClick={handleSave}
-            className="btn-notion btn-notion-primary py-2 px-4 text-sm font-medium"
-          >
-            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-            </svg>
-            Save Changes
-          </button>
+          <div className="flex gap-3">
+            <button
+              onClick={handleReset}
+              disabled={isSaving || isLoading}
+              className="btn-notion py-2 px-4 text-sm font-medium text-notion-700 border border-notion-300 hover:bg-notion-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Reset to Defaults
+            </button>
+            <button
+              onClick={handleSave}
+              disabled={!hasChanges || isSaving || isLoading}
+              className="btn-notion btn-notion-primary py-2 px-4 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isSaving ? (
+                <>
+                  <svg className="w-4 h-4 mr-2 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  Save Changes
+                </>
+              )}
+            </button>
+          </div>
         </div>
       </div>
 
@@ -94,7 +194,7 @@ const SettingsPage = () => {
                     <label className="relative inline-flex items-center cursor-pointer">
                       <input
                         type="checkbox"
-                        checked={settings.notifications}
+                        checked={localSettings.notifications || false}
                         onChange={(e) => handleSettingChange('notifications', e.target.checked)}
                         className="sr-only peer"
                       />
@@ -110,7 +210,7 @@ const SettingsPage = () => {
                     <label className="relative inline-flex items-center cursor-pointer">
                       <input
                         type="checkbox"
-                        checked={settings.autoSave}
+                        checked={localSettings.autoSave || false}
                         onChange={(e) => handleSettingChange('autoSave', e.target.checked)}
                         className="sr-only peer"
                       />
@@ -133,7 +233,7 @@ const SettingsPage = () => {
                         key={theme}
                         onClick={() => handleSettingChange('theme', theme)}
                         className={`p-4 border rounded-lg text-left transition-all duration-150 ${
-                          settings.theme === theme
+                          localSettings.theme === theme
                             ? 'border-accent-300 bg-accent-50'
                             : 'border-notion-200 hover:border-notion-300'
                         }`}
@@ -156,7 +256,7 @@ const SettingsPage = () => {
                 <div>
                   <label className="block text-sm font-medium text-notion-700 mb-3">Default Chart Type</label>
                   <select
-                    value={settings.defaultChartType}
+                    value={localSettings.defaultChartType || 'bar'}
                     onChange={(e) => handleSettingChange('defaultChartType', e.target.value)}
                     className="input-notion"
                   >
@@ -170,7 +270,7 @@ const SettingsPage = () => {
                 <div>
                   <label className="block text-sm font-medium text-notion-700 mb-3">Data Refresh Interval</label>
                   <select
-                    value={settings.dataRefreshInterval}
+                    value={localSettings.dataRefreshInterval || '5'}
                     onChange={(e) => handleSettingChange('dataRefreshInterval', e.target.value)}
                     className="input-notion"
                   >
@@ -196,7 +296,7 @@ const SettingsPage = () => {
                         key={format}
                         onClick={() => handleSettingChange('exportFormat', format)}
                         className={`p-3 border rounded-lg text-center transition-all duration-150 ${
-                          settings.exportFormat === format
+                          localSettings.exportFormat === format
                             ? 'border-accent-300 bg-accent-50 text-accent-700'
                             : 'border-notion-200 hover:border-notion-300 text-notion-700'
                         }`}
