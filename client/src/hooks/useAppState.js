@@ -38,6 +38,33 @@ export const useAppState = () => {
     }
   }, []);
 
+  // Validate selected dataset against available datasets
+  const validateSelectedDataset = useCallback((availableDatasets) => {
+    if (!selectedDataset) {
+      return;
+    }
+    
+    if (!Array.isArray(availableDatasets)) {
+      return;
+    }
+    
+    // If there are no available datasets, clear the selected dataset
+    if (availableDatasets.length === 0) {
+      selectDataset(null);
+      return;
+    }
+    
+    // Check if the selected dataset still exists in the available datasets
+    const datasetExists = availableDatasets.some(
+      dataset => dataset.datasetName === selectedDataset.datasetName
+    );
+    
+    if (!datasetExists) {
+      // Clear the selected dataset if it no longer exists
+      selectDataset(null);
+    }
+  }, [selectedDataset, selectDataset]);
+
   // Loading management
   const startLoading = useCallback((message = 'Loading...') => {
     setIsLoading(true);
@@ -90,6 +117,7 @@ export const useAppState = () => {
     // Dataset state
     selectedDataset,
     selectDataset,
+    validateSelectedDataset,
     
     // Loading state
     isLoading,

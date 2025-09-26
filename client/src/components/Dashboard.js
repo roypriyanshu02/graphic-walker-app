@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useAppState } from '../hooks/useAppState';
+import { useDatasets } from '../hooks/useDatasets';
 import { UI_CONSTANTS, APP_CONFIG } from '../constants';
 import { MESSAGES } from '../constants/messages';
 
@@ -20,6 +21,7 @@ const Dashboard = () => {
     switchTab,
     selectedDataset,
     selectDataset,
+    validateSelectedDataset,
     isLoading,
     loadingMessage,
     error,
@@ -31,6 +33,9 @@ const Dashboard = () => {
 
   const [selectedDashboard, setSelectedDashboard] = useState(null);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
+  
+  // Get datasets for validation
+  const { datasets, loading: datasetsLoading } = useDatasets();
 
   // Set active tab based on current route
   useEffect(() => {
@@ -40,6 +45,13 @@ const Dashboard = () => {
       switchTab(UI_CONSTANTS.TABS.VIEW);
     }
   }, [location.pathname, switchTab]);
+
+  // Validate selected dataset when datasets are loaded (only when not loading)
+  useEffect(() => {
+    if (!datasetsLoading) {
+      validateSelectedDataset(datasets);
+    }
+  }, [datasets, datasetsLoading, validateSelectedDataset]);
 
   // Handle dataset selection
   const handleDatasetSelect = (dataset) => {
@@ -366,6 +378,7 @@ const Dashboard = () => {
                           Dataset Selection
                         </h3>
                         <DatasetSelector
+                          key={selectedDataset?.datasetName || 'no-dataset'}
                           selectedDataset={selectedDataset}
                           onDatasetSelect={handleDatasetSelect}
                           className="dataset-selector-main"
@@ -427,6 +440,7 @@ const Dashboard = () => {
           onClick={() => setShowProfileMenu(false)}
         />
       )}
+      
     </div>
   );
 };
