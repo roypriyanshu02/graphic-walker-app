@@ -1,4 +1,5 @@
 const express = require('express');
+const authRoutes = require('./authRoutes');
 const dashboardRoutes = require('./dashboardRoutes');
 const datasetRoutes = require('./datasetRoutes');
 const csvRoutes = require('./csvRoutes');
@@ -23,6 +24,13 @@ router.get('/', (req, res) => {
     message: 'Graphic Walker API',
     version: '2.0.0',
     documentation: {
+      authentication: {
+        'POST /auth/register': 'Register new user',
+        'POST /auth/login': 'Login user',
+        'GET /auth/profile': 'Get user profile (requires token)',
+        'GET /auth/verify': 'Verify token validity',
+        'POST /auth/logout': 'Logout user'
+      },
       dashboards: {
         'GET /Dashboard': 'Get all dashboards',
         'POST /Dashboard': 'Save/create dashboard',
@@ -60,6 +68,7 @@ router.get('/', (req, res) => {
 });
 
 // Mount route modules
+router.use('/auth', authRoutes);
 router.use('/Dashboard', dashboardRoutes);
 router.use('/Dataset', datasetRoutes);
 router.use('/api/csv', csvRoutes);

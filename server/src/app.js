@@ -79,6 +79,9 @@ class App {
         availableEndpoints: [
           'GET /',
           'GET /health',
+          'POST /auth/register',
+          'POST /auth/login',
+          'GET /auth/profile',
           'GET /Dashboard',
           'POST /Dashboard',
           'GET /Dataset',
