@@ -1,0 +1,56 @@
+Date,Product,Category,Region,Sales_Rep,Units_Sold,Revenue,Cost,Profit,Customer_Type,Discount_Percent,Quarter,Month,Year
+2024-01-15,Laptop Pro 15,Electronics,North America,John Smith,25,62500,37500,25000,Enterprise,5,Q1,January,2024
+2024-01-16,Wireless Mouse,Electronics,Europe,Sarah Jones,150,4500,2250,2250,Consumer,10,Q1,January,2024
+2024-01-17,Office Chair Deluxe,Furniture,Asia Pacific,Mike Chen,40,20000,12000,8000,SMB,15,Q1,January,2024
+2024-01-18,Gaming Headset,Electronics,North America,Lisa Brown,75,11250,5625,5625,Consumer,8,Q1,January,2024
+2024-01-19,Standing Desk,Furniture,Europe,David Wilson,18,13500,8100,5400,Enterprise,12,Q1,January,2024
+2024-01-20,Smartphone X1,Electronics,Asia Pacific,Emily Wang,90,45000,27000,18000,Consumer,7,Q1,January,2024
+2024-01-21,Tablet Pro,Electronics,North America,John Smith,35,21000,12600,8400,SMB,6,Q1,January,2024
+2024-01-22,Wireless Keyboard,Electronics,Europe,Sarah Jones,120,7200,3600,3600,Consumer,12,Q1,January,2024
+2024-01-23,Conference Table,Furniture,Asia Pacific,Mike Chen,8,24000,14400,9600,Enterprise,10,Q1,January,2024
+2024-01-24,Monitor 4K,Electronics,North America,Lisa Brown,45,22500,13500,9000,SMB,5,Q1,January,2024
+2024-02-01,Laptop Air 13,Electronics,Europe,David Wilson,32,40000,24000,16000,Consumer,8,Q1,February,2024
+2024-02-02,Ergonomic Chair,Furniture,Asia Pacific,Emily Wang,28,16800,10080,6720,SMB,14,Q1,February,2024
+2024-02-03,Smart Watch,Electronics,North America,John Smith,85,25500,15300,10200,Consumer,6,Q1,February,2024
+2024-02-04,Desk Lamp LED,Furniture,Europe,Sarah Jones,95,4750,2375,2375,Consumer,15,Q1,February,2024
+2024-02-05,Gaming Laptop,Electronics,Asia Pacific,Mike Chen,22,55000,33000,22000,Consumer,4,Q1,February,2024
+2024-02-06,Filing Cabinet,Furniture,North America,Lisa Brown,35,10500,6300,4200,SMB,18,Q1,February,2024
+2024-02-07,Webcam HD,Electronics,Europe,David Wilson,110,8800,4400,4400,Consumer,9,Q1,February,2024
+2024-02-08,Bookshelf Modern,Furniture,Asia Pacific,Emily Wang,25,15000,9000,6000,Enterprise,11,Q1,February,2024
+2024-02-09,Tablet Mini,Electronics,North America,John Smith,65,16250,9750,6500,Consumer,13,Q1,February,2024
+2024-02-10,Office Sofa,Furniture,Europe,Sarah Jones,12,18000,10800,7200,Enterprise,7,Q1,February,2024
+2024-03-01,Desktop PC,Electronics,Asia Pacific,Mike Chen,18,27000,16200,10800,SMB,5,Q1,March,2024
+2024-03-02,Storage Cabinet,Furniture,North America,Lisa Brown,30,12000,7200,4800,SMB,16,Q1,March,2024
+2024-03-03,Bluetooth Speaker,Electronics,Europe,David Wilson,140,21000,10500,10500,Consumer,11,Q1,March,2024
+2024-03-04,Executive Desk,Furniture,Asia Pacific,Emily Wang,15,37500,22500,15000,Enterprise,8,Q1,March,2024
+2024-03-05,Printer Laser,Electronics,North America,John Smith,42,21000,12600,8400,SMB,6,Q1,March,2024
+2024-04-01,Workstation Pro,Electronics,Europe,Sarah Jones,12,48000,28800,19200,Enterprise,3,Q2,April,2024
+2024-04-02,Lounge Chair,Furniture,Asia Pacific,Mike Chen,22,26400,15840,10560,Enterprise,12,Q2,April,2024
+2024-04-03,Action Camera,Electronics,North America,Lisa Brown,95,23750,14250,9500,Consumer,8,Q2,April,2024
+2024-04-04,Meeting Table,Furniture,Europe,David Wilson,14,21000,12600,8400,Enterprise,10,Q2,April,2024
+2024-04-05,Fitness Tracker,Electronics,Asia Pacific,Emily Wang,130,19500,11700,7800,Consumer,9,Q2,April,2024
+2024-04-06,Office Pod,Furniture,North America,John Smith,6,42000,25200,16800,Enterprise,5,Q2,April,2024
+2024-04-07,Drone Pro,Electronics,Europe,Sarah Jones,35,52500,31500,21000,Consumer,4,Q2,April,2024
+2024-04-08,Recliner Chair,Furniture,Asia Pacific,Mike Chen,18,27000,16200,10800,SMB,13,Q2,April,2024
+2024-04-09,VR Headset,Electronics,North America,Lisa Brown,28,42000,25200,16800,Consumer,6,Q2,April,2024
+2024-04-10,Sit-Stand Desk,Furniture,Europe,David Wilson,25,37500,22500,15000,SMB,11,Q2,April,2024
+2024-05-01,Server Rack,Electronics,Asia Pacific,Emily Wang,8,40000,24000,16000,Enterprise,2,Q2,May,2024
+2024-05-02,Reception Desk,Furniture,North America,John Smith,10,25000,15000,10000,Enterprise,14,Q2,May,2024
+2024-05-03,Security Camera,Electronics,Europe,Sarah Jones,85,17000,10200,6800,SMB,7,Q2,May,2024
+2024-05-04,Modular Sofa,Furniture,Asia Pacific,Mike Chen,16,32000,19200,12800,Enterprise,9,Q2,May,2024
+2024-05-05,Smart TV 55,Electronics,North America,Lisa Brown,45,67500,40500,27000,Consumer,5,Q2,May,2024
+2024-05-06,Bar Stool Set,Furniture,Europe,David Wilson,24,7200,4320,2880,Consumer,17,Q2,May,2024
+2024-05-07,Router Enterprise,Electronics,Asia Pacific,Emily Wang,55,27500,16500,11000,Enterprise,4,Q2,May,2024
+2024-05-08,Wall Shelf Unit,Furniture,North America,John Smith,40,8000,4800,3200,Consumer,15,Q2,May,2024
+2024-05-09,Projector 4K,Electronics,Europe,Sarah Jones,30,45000,27000,18000,SMB,6,Q2,May,2024
+2024-05-10,Dining Set,Furniture,Asia Pacific,Mike Chen,12,36000,21600,14400,Consumer,8,Q2,May,2024
+2024-06-01,Workstation Mobile,Electronics,North America,Lisa Brown,20,50000,30000,20000,Enterprise,3,Q2,June,2024
+2024-06-02,Garden Furniture,Furniture,Europe,David Wilson,18,27000,16200,10800,Consumer,12,Q2,June,2024
+2024-06-03,Gaming Console,Electronics,Asia Pacific,Emily Wang,75,37500,22500,15000,Consumer,7,Q2,June,2024
+2024-06-04,Bean Bag Chair,Furniture,North America,John Smith,35,7000,4200,2800,Consumer,18,Q2,June,2024
+2024-06-05,Smart Home Hub,Electronics,Europe,Sarah Jones,90,18000,10800,7200,Consumer,10,Q2,June,2024
+2024-06-06,Picnic Table,Furniture,Asia Pacific,Mike Chen,20,10000,6000,4000,Consumer,16,Q2,June,2024
+2024-06-07,E-Reader Pro,Electronics,North America,Lisa Brown,110,27500,16500,11000,Consumer,8,Q2,June,2024
+2024-06-08,Hammock Stand,Furniture,Europe,David Wilson,25,12500,7500,5000,Consumer,14,Q2,June,2024
+2024-06-09,Dash Camera,Electronics,Asia Pacific,Emily Wang,95,14250,8550,5700,Consumer,11,Q2,June,2024
+2024-06-10,Patio Set,Furniture,North America,John Smith,15,22500,13500,9000,Consumer,9,Q2,June,2024

@@ -1,0 +1,51 @@
+Customer_ID,Name,Age,Gender,Location,Country,Registration_Date,Last_Purchase_Date,Total_Purchases,Total_Spent,Preferred_Category,Loyalty_Tier,Email_Subscribed,Mobile_App,Satisfaction_Score,Churn_Risk
+CUST001,Alice Johnson,34,Female,New York,USA,2023-03-15,2024-06-08,12,2450.75,Electronics,Gold,Yes,Yes,4.5,Low
+CUST002,Bob Smith,28,Male,London,UK,2023-01-22,2024-06-10,8,1876.20,Clothing,Silver,No,Yes,4.2,Medium
+CUST003,Carol Davis,45,Female,Toronto,Canada,2022-11-10,2024-05-25,24,5632.90,Home & Garden,Platinum,Yes,Yes,4.8,Low
+CUST004,David Wilson,31,Male,Sydney,Australia,2023-05-08,2024-06-05,15,3201.45,Sports,Gold,Yes,No,4.1,Medium
+CUST005,Emma Brown,29,Female,Berlin,Germany,2023-02-18,2024-06-07,18,4123.65,Beauty,Gold,Yes,Yes,4.6,Low
+CUST006,Frank Miller,52,Male,Paris,France,2022-08-30,2024-04-20,6,892.35,Books,Bronze,No,No,3.2,High
+CUST007,Grace Lee,26,Female,Tokyo,Japan,2023-07-12,2024-06-09,21,4876.50,Fashion,Platinum,Yes,Yes,4.7,Low
+CUST008,Henry Taylor,38,Male,Mumbai,India,2023-04-25,2024-05-30,9,1654.80,Electronics,Silver,No,Yes,3.9,Medium
+CUST009,Ivy Chen,33,Female,Singapore,Singapore,2023-06-03,2024-06-06,14,3045.25,Home & Kitchen,Gold,Yes,Yes,4.4,Low
+CUST010,Jack Anderson,41,Male,Chicago,USA,2022-12-15,2024-03-18,4,567.90,Automotive,Bronze,No,No,2.8,High
+CUST011,Kate Wilson,27,Female,Vancouver,Canada,2023-08-20,2024-06-08,16,3789.40,Health & Wellness,Gold,Yes,Yes,4.3,Low
+CUST012,Liam O'Connor,35,Male,Dublin,Ireland,2023-01-05,2024-05-28,11,2134.60,Sports,Silver,Yes,No,4.0,Medium
+CUST013,Mia Rodriguez,30,Female,Mexico City,Mexico,2023-03-30,2024-06-04,19,4321.75,Fashion,Gold,Yes,Yes,4.5,Low
+CUST014,Noah Kim,24,Male,Seoul,South Korea,2023-09-14,2024-06-07,13,2876.30,Gaming,Silver,Yes,Yes,4.2,Medium
+CUST015,Olivia Martinez,39,Female,Barcelona,Spain,2022-10-08,2024-05-15,7,1243.85,Travel,Bronze,No,Yes,3.6,High
+CUST016,Paul Thompson,46,Male,Amsterdam,Netherlands,2023-02-11,2024-06-03,22,5123.90,Home & Garden,Platinum,Yes,Yes,4.7,Low
+CUST017,Quinn Foster,32,Female,Stockholm,Sweden,2023-04-17,2024-06-09,17,3654.20,Beauty,Gold,Yes,Yes,4.4,Low
+CUST018,Ryan Cooper,29,Male,Melbourne,Australia,2023-06-28,2024-05-22,10,2087.55,Electronics,Silver,No,Yes,3.8,Medium
+CUST019,Sophia Wang,37,Female,Hong Kong,Hong Kong,2023-01-12,2024-06-02,20,4567.80,Luxury,Platinum,Yes,Yes,4.8,Low
+CUST020,Thomas Baker,43,Male,Zurich,Switzerland,2022-07-25,2024-01-30,3,345.60,Books,Bronze,No,No,2.5,High
+CUST021,Uma Patel,31,Female,Delhi,India,2023-05-22,2024-06-06,25,5876.45,Fashion,Platinum,Yes,Yes,4.6,Low
+CUST022,Victor Petrov,36,Male,Moscow,Russia,2023-03-08,2024-04-12,5,732.90,Electronics,Bronze,No,No,3.1,High
+CUST023,Wendy Liu,28,Female,Beijing,China,2023-08-05,2024-06-08,23,4932.70,Home & Kitchen,Platinum,Yes,Yes,4.5,Low
+CUST024,Xavier Santos,40,Male,São Paulo,Brazil,2023-02-28,2024-05-20,12,2543.85,Sports,Silver,Yes,No,4.1,Medium
+CUST025,Yuki Tanaka,25,Female,Osaka,Japan,2023-07-18,2024-06-09,15,3421.60,Beauty,Gold,Yes,Yes,4.3,Low
+CUST026,Zoe Clark,44,Female,Los Angeles,USA,2022-09-12,2024-03-25,8,1567.25,Health & Wellness,Silver,No,Yes,3.7,High
+CUST027,Alex Morgan,33,Male,Edinburgh,UK,2023-04-03,2024-06-01,18,3876.90,Outdoor,Gold,Yes,Yes,4.2,Low
+CUST028,Bella Singh,26,Female,Mumbai,India,2023-06-15,2024-06-07,14,2987.45,Fashion,Silver,Yes,Yes,4.4,Medium
+CUST029,Carlos Mendoza,48,Male,Madrid,Spain,2022-11-20,2024-02-14,6,876.30,Automotive,Bronze,No,No,2.9,High
+CUST030,Diana Kim,35,Female,Seoul,South Korea,2023-01-28,2024-06-05,21,4654.80,Electronics,Platinum,Yes,Yes,4.7,Low
+CUST031,Ethan Phillips,30,Male,Denver,USA,2023-05-10,2024-05-28,16,3234.55,Sports,Gold,Yes,No,4.0,Medium
+CUST032,Fiona Murray,42,Female,Glasgow,UK,2023-03-25,2024-06-03,11,2145.70,Home & Garden,Silver,No,Yes,3.9,Medium
+CUST033,Gabriel Santos,27,Male,Rio de Janeiro,Brazil,2023-07-08,2024-06-08,19,4123.90,Gaming,Gold,Yes,Yes,4.3,Low
+CUST034,Hannah Wright,36,Female,Oslo,Norway,2023-02-14,2024-05-18,9,1876.25,Beauty,Silver,Yes,Yes,4.1,Medium
+CUST035,Ian Foster,41,Male,Copenhagen,Denmark,2022-10-30,2024-04-05,7,1324.60,Books,Bronze,No,No,3.4,High
+CUST036,Julia Rossi,29,Female,Rome,Italy,2023-08-12,2024-06-09,17,3765.40,Fashion,Gold,Yes,Yes,4.5,Low
+CUST037,Kevin Chang,34,Male,Taipei,Taiwan,2023-04-20,2024-06-04,13,2654.85,Electronics,Silver,Yes,Yes,4.2,Medium
+CUST038,Luna Andersson,31,Female,Stockholm,Sweden,2023-06-25,2024-06-07,20,4321.75,Health & Wellness,Platinum,Yes,Yes,4.6,Low
+CUST039,Marco Gonzalez,39,Male,Barcelona,Spain,2023-01-18,2024-03-22,5,654.30,Travel,Bronze,No,Yes,3.0,High
+CUST040,Nina Kowalski,32,Female,Warsaw,Poland,2023-05-30,2024-06-06,22,4876.90,Home & Kitchen,Platinum,Yes,Yes,4.7,Low
+CUST041,Oscar Nielsen,37,Male,Copenhagen,Denmark,2023-03-12,2024-05-25,14,2987.45,Outdoor,Gold,Yes,No,4.1,Medium
+CUST042,Penny Brooks,28,Female,Atlanta,USA,2023-07-22,2024-06-08,18,3654.80,Beauty,Gold,Yes,Yes,4.4,Low
+CUST043,Quincy Adams,45,Male,Boston,USA,2022-12-05,2024-01-15,4,432.60,Books,Bronze,No,No,2.7,High
+CUST044,Rosa Martinez,33,Female,Valencia,Spain,2023-04-08,2024-06-02,16,3432.70,Fashion,Gold,Yes,Yes,4.3,Low
+CUST045,Sam Thompson,30,Male,Manchester,UK,2023-06-18,2024-06-09,12,2543.85,Gaming,Silver,Yes,Yes,4.0,Medium
+CUST046,Tina Zhou,26,Female,Shanghai,China,2023-08-28,2024-06-07,24,5234.90,Electronics,Platinum,Yes,Yes,4.8,Low
+CUST047,Uri Levy,38,Male,Tel Aviv,Israel,2023-02-22,2024-05-30,10,2087.55,Technology,Silver,No,Yes,3.8,Medium
+CUST048,Vera Popov,35,Female,Prague,Czech Republic,2023-05-15,2024-06-05,19,4123.65,Home & Garden,Gold,Yes,Yes,4.5,Low
+CUST049,Will Johnson,42,Male,Seattle,USA,2022-09-28,2024-04-10,8,1432.75,Outdoor,Silver,No,No,3.5,High
+CUST050,Xara Ali,29,Female,Dubai,UAE,2023-07-05,2024-06-08,21,4765.40,Luxury,Platinum,Yes,Yes,4.6,Low
