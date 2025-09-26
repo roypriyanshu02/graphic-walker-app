@@ -91,18 +91,25 @@ install_dependencies() {
     local dir=$1
     local name=$2
 
-    print_status "Installing $name dependencies in $dir..."
+    print_status "Checking $name dependencies in $dir..."
     if [ ! -f "$dir/package.json" ]; then
         print_error "package.json not found in $dir"
         exit 1
     fi
 
-    # Only run npm install if node_modules is missing
-    if [ ! -d "$dir/node_modules" ]; then
-        (cd "$dir" && npm install)
+    # Determine package manager
+    local pkg_mgr="npm"
+    if [ -f "$dir/yarn.lock" ]; then
+        pkg_mgr="yarn"
+    fi
+
+    # Install if node_modules is missing or package.json is newer
+    if [ ! -d "$dir/node_modules" ] || [ "$dir/package.json" -nt "$dir/node_modules" ]; then
+        print_status "Installing $name dependencies using $pkg_mgr..."
+        (cd "$dir" && $pkg_mgr install)
         print_success "$name dependencies installed"
     else
-        print_status "$name dependencies appear to be installed"
+        print_status "$name dependencies are up to date"
     fi
 }
 
@@ -116,10 +123,15 @@ start_backend() {
         return 1
     fi
 
+    local pkg_mgr="npm"
+    if [ -f "$PROJECT_ROOT/server/yarn.lock" ]; then
+        pkg_mgr="yarn"
+    fi
+
     if command_exists nodemon; then
-        (cd "$PROJECT_ROOT/server" && nohup npm run dev > "$LOGS_DIR/backend.log" 2>&1 &)
+        (cd "$PROJECT_ROOT/server" && nohup $pkg_mgr run dev > "$LOGS_DIR/backend.log" 2>&1 &)
     else
-        (cd "$PROJECT_ROOT/server" && nohup npm start > "$LOGS_DIR/backend.log" 2>&1 &)
+        (cd "$PROJECT_ROOT/server" && nohup $pkg_mgr start > "$LOGS_DIR/backend.log" 2>&1 &)
     fi
 
     # Capture PID of last background process in the server directory
@@ -156,7 +168,12 @@ start_frontend() {
         return 1
     fi
 
-    (cd "$PROJECT_ROOT/client" && nohup npm start > "$LOGS_DIR/frontend.log" 2>&1 &)
+    local pkg_mgr="npm"
+    if [ -f "$PROJECT_ROOT/client/yarn.lock" ]; then
+        pkg_mgr="yarn"
+    fi
+
+    (cd "$PROJECT_ROOT/client" && nohup $pkg_mgr start > "$LOGS_DIR/frontend.log" 2>&1 &)
 
     sleep 0.2
     local pid
