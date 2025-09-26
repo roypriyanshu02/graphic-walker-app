@@ -9,8 +9,10 @@ import { MESSAGES } from '../constants/messages';
 // Components
 import DatasetSelector from './DatasetSelector';
 import DashboardSelector from './DashboardSelector';
+import DashboardManager from './DashboardManager';
 import FileUpload from './FileUpload';
 import GraphicWalkerChart, { MultipleChartsRenderer } from './GraphicWalkerChart';
+import GettingStarted from './GettingStarted';
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -33,6 +35,7 @@ const Dashboard = () => {
 
   const [selectedDashboard, setSelectedDashboard] = useState(null);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [showGettingStarted, setShowGettingStarted] = useState(false);
   
   // Get datasets for validation
   const { datasets, loading: datasetsLoading } = useDatasets();
@@ -83,6 +86,11 @@ const Dashboard = () => {
   const handleDashboardSave = (dashboard) => {
     showSuccess(MESSAGES.DASHBOARD_SAVED);
     setSelectedDashboard(dashboard);
+  };
+
+  // Handle dashboard deleted
+  const handleDashboardDeleted = (dashboardName) => {
+    showSuccess(`Dashboard "${dashboardName}" deleted successfully`);
   };
 
   // Handle logout
@@ -268,13 +276,25 @@ const Dashboard = () => {
                 <p className="text-notion-secondary text-sm">View and interact with your saved dashboards</p>
               </div>
 
-              {/* Dashboard Selection */}
+              {/* Dashboard Management */}
               <div className="mb-8">
-                <h2 className="heading-notion text-base mb-4">Select Dashboard</h2>
-                <DashboardSelector
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="heading-notion text-base">Your Dashboards</h2>
+                  <button
+                    onClick={() => setShowGettingStarted(true)}
+                    className="text-xs text-notion-500 hover:text-accent-600 transition-colors duration-150 flex items-center"
+                  >
+                    <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Help
+                  </button>
+                </div>
+                <DashboardManager
                   selectedDashboard={selectedDashboard}
                   onDashboardSelect={handleDashboardSelect}
-                  className="dashboard-selector-main"
+                  onDashboardDeleted={handleDashboardDeleted}
+                  className="dashboard-manager-main"
                 />
               </div>
 
@@ -293,13 +313,32 @@ const Dashboard = () => {
                           {selectedDashboard.datasetName}
                         </div>
                       </div>
-                      <span className={`inline-flex items-center px-2 py-1 rounded-md text-xs font-medium ${
-                        selectedDashboard.isMultiple 
-                          ? 'bg-accent-100 text-accent-800' 
-                          : 'bg-notion-100 text-notion-800'
-                      }`}>
-                        {selectedDashboard.isMultiple ? 'Multi-Chart' : 'Single Chart'}
-                      </span>
+                      <div className="flex items-center space-x-2">
+                        <span className={`inline-flex items-center px-2 py-1 rounded-md text-xs font-medium ${
+                          selectedDashboard.isMultiple 
+                            ? 'bg-accent-100 text-accent-800' 
+                            : 'bg-notion-100 text-notion-800'
+                        }`}>
+                          {selectedDashboard.isMultiple ? 'Multi-Chart' : 'Single Chart'}
+                        </span>
+                        <button
+                          onClick={() => {
+                            // Select the dataset and navigate to design mode
+                            const dataset = datasets.find(d => d.datasetName === selectedDashboard.datasetName);
+                            if (dataset) {
+                              selectDataset(dataset);
+                              navigate('/dashboard/design');
+                            }
+                          }}
+                          className="text-xs text-notion-500 hover:text-accent-600 transition-colors duration-150 flex items-center px-2 py-1 rounded hover:bg-notion-50"
+                          title="Edit this dashboard"
+                        >
+                          <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                          </svg>
+                          Edit
+                        </button>
+                      </div>
                     </div>
                   </div>
                   
@@ -371,18 +410,57 @@ const Dashboard = () => {
               </div>
 
               {/* Chart Container */}
-              <div className="card-notion">
-                <GraphicWalkerChart
-                  dataset={selectedDataset}
-                  mode="design"
-                  onSave={handleDashboardSave}
-                  className="main-chart"
-                />
-              </div>
+              {selectedDataset ? (
+                <div className="card-notion">
+                  <div className="p-4 border-b border-notion-200 bg-notion-25">
+                    <div className="flex items-start space-x-3">
+                      <div className="w-8 h-8 bg-accent-100 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <svg className="w-4 h-4 text-accent-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="text-sm font-medium text-notion-900 mb-1">Create Your Dashboard</h3>
+                        <p className="text-xs text-notion-600 leading-relaxed">
+                          Drag fields from the data panel to create charts. Use the toolbar to customize visualizations. 
+                          Click "Save Dashboard" when you're ready to save your work.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <GraphicWalkerChart
+                    dataset={selectedDataset}
+                    mode="design"
+                    onSave={handleDashboardSave}
+                    className="main-chart"
+                  />
+                </div>
+              ) : (
+                <div className="card-notion">
+                  <div className="flex items-center justify-center py-16">
+                    <div className="text-center max-w-md">
+                      <div className="w-16 h-16 mx-auto mb-4 bg-notion-100 rounded-full flex items-center justify-center">
+                        <svg className="w-8 h-8 text-notion-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                        </svg>
+                      </div>
+                      <h3 className="heading-notion text-base mb-2">Select a dataset to start</h3>
+                      <p className="text-notion-secondary text-sm mb-4">
+                        Choose a dataset from the dropdown above or upload a new CSV file to begin creating your dashboard.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
       </div>
+
+      {/* Getting Started Tutorial */}
+      {showGettingStarted && (
+        <GettingStarted onClose={() => setShowGettingStarted(false)} />
+      )}
 
       {/* Click outside to close profile menu */}
       {showProfileMenu && (

@@ -1,35 +1,15 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { GraphicWalker, GraphicRenderer } from '@kanaries/graphic-walker';
 import { useDataset } from '../hooks/useDatasets';
 import { useDashboardSave } from '../hooks/useDashboards';
 import { dataUtils } from '../utils/helpers';
 import { MESSAGES } from '../constants/messages';
 import ErrorBoundary from './ErrorBoundary';
+import DashboardCreateDialog from './DashboardCreateDialog';
 
-// Default theme configuration for Graphic Walker
-const defaultTheme = {
-  "primary": "#3b82f6",
-  "primaryDark": "#2563eb", 
-  "primaryLight": "#93c5fd",
-  "background": "#ffffff",
-  "backgroundAlt": "#f8fafc",
-  "foreground": "#1e293b",
-  "foregroundAlt": "#64748b",
-  "border": "#e2e8f0",
-  "borderAlt": "#cbd5e1",
-  "success": "#10b981",
-  "warning": "#f59e0b",
-  "error": "#ef4444",
-  "info": "#3b82f6"
-};
-
-// Configuration for Graphic Walker appearance
+// Minimal appearance configuration for Graphic Walker
 const defaultAppearance = {
-  showSaveButton: true,
-  showExportButton: true,
-  showDataBoard: true,
-  showInsightBoard: true,
-  theme: 'light'
+  showSaveButton: false // We use custom save button
 };
 
 const GraphicWalkerChart = ({ 
@@ -42,8 +22,12 @@ const GraphicWalkerChart = ({
   const [chartData, setChartData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const [pendingConfig, setPendingConfig] = useState(null);
+  const [currentSpec, setCurrentSpec] = useState([]);
+  const graphicWalkerRef = useRef(null);
   
-  const { data: datasetData, loadData } = useDataset(dataset?.datasetName);
+  const { loadData } = useDataset(dataset?.datasetName);
   const { saving, saveDashboard } = useDashboardSave();
 
   // Load dataset data when dataset changes
@@ -57,13 +41,26 @@ const GraphicWalkerChart = ({
           if (result && result.records) {
             const cleanedData = dataUtils.cleanData(result.records);
             const gwData = dataUtils.convertToGraphicWalkerFormat(cleanedData);
-            setChartData(gwData);
+            
+            // Validate the data structure before setting
+            if (gwData && Array.isArray(gwData.dataSource) && Array.isArray(gwData.fields)) {
+              console.log('Chart data loaded successfully:', {
+                dataSourceLength: gwData.dataSource.length,
+                fieldsLength: gwData.fields.length,
+                fields: gwData.fields.map(f => ({ name: f.name, type: f.semanticType }))
+              });
+              setChartData(gwData);
+            } else {
+              console.error('Invalid data structure from convertToGraphicWalkerFormat:', gwData);
+              setError('Invalid data format received');
+            }
           } else {
             setError(MESSAGES.NO_DATA_FOUND);
           }
         })
         .catch((err) => {
-          setError(err.message || MESSAGES.FETCH_ERROR);
+          console.error('Error loading dataset:', err);
+          setError(err.message || 'Failed to load dataset');
         })
         .finally(() => {
           setLoading(false);
@@ -86,23 +83,60 @@ const GraphicWalkerChart = ({
     return null;
   }, [dashboard]);
 
-  // Handle save dashboard
-  const handleSave = async (config, dashboardName) => {
-    if (!dataset || !chartData) return;
-
-    const dashboardData = {
-      dashboardName: dashboardName,
-      datasetName: dataset.datasetName,
-      jsonFormat: JSON.stringify(config),
-      isMultiple: Array.isArray(config) && config.length > 1
-    };
-
-    const result = await saveDashboard(dashboardData);
-    if (result && onSave) {
-      onSave(result);
+  // Handle save dashboard request from GraphicWalker
+  const handleSaveRequest = () => {
+    // Use current spec state which gets updated by GraphicWalker
+    const configToSave = currentSpec && currentSpec.length > 0 ? currentSpec : dashboardConfig || [];
+    console.log('Save request received:', { 
+      configType: typeof configToSave, 
+      configLength: Array.isArray(configToSave) ? configToSave.length : 'not array',
+      hasCharts: Array.isArray(configToSave) && configToSave.some(spec => spec.encodings && Object.keys(spec.encodings).length > 0)
+    });
+    
+    // Check if there's actually something to save
+    if (!configToSave || (Array.isArray(configToSave) && configToSave.length === 0)) {
+      console.warn('No chart configuration to save');
+      // You might want to show a message to the user here
+      return;
     }
     
-    return result;
+    setPendingConfig(configToSave);
+    setShowSaveDialog(true);
+  };
+
+  // Handle actual save with dashboard name
+  const handleSave = async (dashboardName) => {
+    if (!dataset || !chartData || !pendingConfig) {
+      console.warn('Cannot save dashboard: missing required data');
+      return;
+    }
+
+    console.log('Saving dashboard:', { dashboardName, datasetName: dataset.datasetName, configLength: Array.isArray(pendingConfig) ? pendingConfig.length : 'not array' });
+
+    const dashboardData = {
+      dashboardName: dashboardName.trim(),
+      datasetName: dataset.datasetName,
+      jsonFormat: JSON.stringify(pendingConfig),
+      isMultiple: Array.isArray(pendingConfig) && pendingConfig.length > 1
+    };
+
+    try {
+      const result = await saveDashboard(dashboardData);
+      if (result && onSave) {
+        onSave(result);
+      }
+      console.log('Dashboard saved successfully:', result);
+      setShowSaveDialog(false);
+      setPendingConfig(null);
+    } catch (error) {
+      console.error('Failed to save dashboard:', error);
+    }
+  };
+
+  // Handle save dialog close
+  const handleSaveDialogClose = () => {
+    setShowSaveDialog(false);
+    setPendingConfig(null);
   };
 
   // Render loading state
@@ -178,6 +212,18 @@ const GraphicWalkerChart = ({
   // Add error boundary for GraphicWalker components
   const renderGraphicWalker = () => {
     try {
+      // Validate chart data before rendering
+      if (!chartData || !chartData.dataSource || !chartData.fields) {
+        console.warn('Invalid chart data structure:', chartData);
+        return (
+          <div className="flex items-center justify-center min-h-96 bg-notion-50">
+            <div className="text-center">
+              <p className="text-notion-600">Invalid data structure</p>
+            </div>
+          </div>
+        );
+      }
+
       console.log('Rendering GraphicWalker with data:', {
         dataSource: chartData.dataSource?.length,
         fields: chartData.fields?.length,
@@ -188,15 +234,50 @@ const GraphicWalkerChart = ({
       if (mode === 'design') {
         return (
           <ErrorBoundary>
-            <GraphicWalker
-              data={chartData.dataSource}
-              fields={chartData.fields}
-              spec={dashboardConfig || []}
-              onSave={async (config, name) => {
-                const result = await handleSave(config, name);
-                return result !== null;
-              }}
-            />
+            <div className="relative h-full">
+              <GraphicWalker
+                data={chartData.dataSource}
+                fields={chartData.fields}
+                spec={dashboardConfig || []}
+                onSpecChange={(spec) => {
+                  console.log('Spec changed:', spec);
+                  setCurrentSpec(spec || []);
+                }}
+              />
+              
+              {/* Custom Save Button */}
+              <div className="absolute top-4 right-4 z-10">
+                <div className="flex items-center space-x-2">
+                  {/* Chart Count Indicator */}
+                  {currentSpec && currentSpec.length > 0 && (
+                    <div className="px-2 py-1 bg-white border border-notion-200 rounded-md text-xs text-notion-600 shadow-sm">
+                      {currentSpec.length} chart{currentSpec.length !== 1 ? 's' : ''}
+                    </div>
+                  )}
+                  
+                  <button
+                    onClick={handleSaveRequest}
+                    disabled={saving || !currentSpec || currentSpec.length === 0}
+                    className="btn-notion flex items-center shadow-elevated disabled:opacity-50 disabled:cursor-not-allowed"
+                    title={!currentSpec || currentSpec.length === 0 ? 'Create a chart first' : 'Save dashboard'}
+                  >
+                    {saving ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2"></div>
+                        Saving...
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4a2 2 0 012-2h4a2 2 0 012 2v3a2 2 0 01-2 2H9z" />
+                        </svg>
+                        Save Dashboard
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
           </ErrorBoundary>
         );
       } else {
@@ -235,14 +316,14 @@ const GraphicWalkerChart = ({
         {renderGraphicWalker()}
       </div>
       
-      {saving && (
-        <div className="absolute inset-0 bg-white bg-opacity-90 flex items-center justify-center z-50">
-          <div className="text-center space-y-4">
-            <div className="animate-spin rounded-full h-8 w-8 border-4 border-primary-200 border-t-primary-600 mx-auto"></div>
-            <p className="text-gray-700 font-medium">Saving dashboard...</p>
-          </div>
-        </div>
-      )}
+      {/* Save Dashboard Dialog */}
+      <DashboardCreateDialog
+        isOpen={showSaveDialog}
+        onClose={handleSaveDialogClose}
+        onSave={handleSave}
+        datasetName={dataset?.datasetName || ''}
+        isLoading={saving}
+      />
     </div>
   );
 };
@@ -257,7 +338,7 @@ export const MultipleChartsRenderer = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   
-  const { data: datasetData, loadData } = useDataset(dataset?.datasetName);
+  const { loadData } = useDataset(dataset?.datasetName);
 
   // Load dataset data
   useEffect(() => {
