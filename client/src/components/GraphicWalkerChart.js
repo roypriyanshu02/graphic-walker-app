@@ -9,7 +9,8 @@ import DashboardCreateDialog from './DashboardCreateDialog';
 
 // Minimal appearance configuration for Graphic Walker
 const defaultAppearance = {
-  showSaveButton: false // We use custom save button
+  showSaveButton: false, // We use custom save button
+  appearance: "light" // Always use light mode
 };
 
 const GraphicWalkerChart = ({ 
@@ -500,6 +501,7 @@ const GraphicWalkerChart = ({
                 data={chartData.dataSource}
                 fields={chartData.fields}
                 spec={dashboardConfig || []}
+                appearance="light"
                 onSpecChange={(spec) => {
                   console.log('🔄 [SPEC CHANGE] GraphicWalker spec changed:', {
                     timestamp: new Date().toISOString(),
@@ -587,6 +589,7 @@ const GraphicWalkerChart = ({
               data={chartData.dataSource}
               fields={chartData.fields}
               chart={dashboardConfig || []}
+              appearance="light"
             />
           </ErrorBoundary>
         );
@@ -725,6 +728,7 @@ export const MultipleChartsRenderer = ({
                 data={chartData.dataSource}
                 fields={chartData.fields}
                 chart={chartConfig || {}}
+                appearance="light"
               />
             </ErrorBoundary>
           </div>
