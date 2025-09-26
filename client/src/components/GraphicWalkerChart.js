@@ -4,6 +4,33 @@ import { useDataset } from '../hooks/useDatasets';
 import { useDashboardSave } from '../hooks/useDashboards';
 import { dataUtils } from '../utils/helpers';
 import { MESSAGES } from '../constants/messages';
+import ErrorBoundary from './ErrorBoundary';
+
+// Default theme configuration for Graphic Walker
+const defaultTheme = {
+  "primary": "#3b82f6",
+  "primaryDark": "#2563eb", 
+  "primaryLight": "#93c5fd",
+  "background": "#ffffff",
+  "backgroundAlt": "#f8fafc",
+  "foreground": "#1e293b",
+  "foregroundAlt": "#64748b",
+  "border": "#e2e8f0",
+  "borderAlt": "#cbd5e1",
+  "success": "#10b981",
+  "warning": "#f59e0b",
+  "error": "#ef4444",
+  "info": "#3b82f6"
+};
+
+// Configuration for Graphic Walker appearance
+const defaultAppearance = {
+  showSaveButton: true,
+  showExportButton: true,
+  showDataBoard: true,
+  showInsightBoard: true,
+  theme: 'light'
+};
 
 const GraphicWalkerChart = ({ 
   dataset, 
@@ -148,33 +175,64 @@ const GraphicWalkerChart = ({
     );
   }
 
+  // Add error boundary for GraphicWalker components
+  const renderGraphicWalker = () => {
+    try {
+      console.log('Rendering GraphicWalker with data:', {
+        dataSource: chartData.dataSource?.length,
+        fields: chartData.fields?.length,
+        mode,
+        dashboardConfig
+      });
+
+      if (mode === 'design') {
+        return (
+          <ErrorBoundary>
+            <GraphicWalker
+              data={chartData.dataSource}
+              fields={chartData.fields}
+              spec={dashboardConfig || []}
+              onSave={async (config, name) => {
+                const result = await handleSave(config, name);
+                return result !== null;
+              }}
+            />
+          </ErrorBoundary>
+        );
+      } else {
+        return (
+          <ErrorBoundary>
+            <GraphicRenderer
+              data={chartData.dataSource}
+              fields={chartData.fields}
+              chart={dashboardConfig || []}
+            />
+          </ErrorBoundary>
+        );
+      }
+    } catch (error) {
+      console.error('Error rendering GraphicWalker:', error);
+      return (
+        <div className="flex items-center justify-center min-h-96 bg-red-50">
+          <div className="text-center max-w-md mx-auto px-6">
+            <div className="w-16 h-16 mx-auto mb-4 bg-red-100 rounded-full flex items-center justify-center">
+              <svg className="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Graphic Walker Error</h3>
+            <p className="text-gray-600 mb-4">{error.message}</p>
+          </div>
+        </div>
+      );
+    }
+  };
+
   // Render chart based on mode
   return (
     <div className={`relative h-full w-full bg-white ${className}`}>
       <div className="h-full w-full">
-        {mode === 'design' ? (
-          <GraphicWalker
-            data={chartData.dataSource}
-            fields={chartData.fields}
-            spec={dashboardConfig}
-            onSave={async (config, name) => {
-              const result = await handleSave(config, name);
-              return result !== null;
-            }}
-            appearance={{
-              showSaveButton: true,
-              showExportButton: true,
-              showDataBoard: true,
-              showInsightBoard: true
-            }}
-          />
-        ) : (
-          <GraphicRenderer
-            data={chartData.dataSource}
-            fields={chartData.fields}
-            chart={dashboardConfig}
-          />
-        )}
+        {renderGraphicWalker()}
       </div>
       
       {saving && (
@@ -281,11 +339,13 @@ export const MultipleChartsRenderer = ({
             </h3>
           </div>
           <div className="p-4">
-            <GraphicRenderer
-              data={chartData.dataSource}
-              fields={chartData.fields}
-              chart={chartConfig}
-            />
+            <ErrorBoundary>
+              <GraphicRenderer
+                data={chartData.dataSource}
+                fields={chartData.fields}
+                chart={chartConfig || {}}
+              />
+            </ErrorBoundary>
           </div>
         </div>
       ))}
