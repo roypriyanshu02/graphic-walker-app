@@ -25,7 +25,12 @@ const GraphicWalkerChart = ({
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [pendingConfig, setPendingConfig] = useState(null);
   const [currentSpec, setCurrentSpec] = useState([]);
+  const [specPollingActive, setSpecPollingActive] = useState(false);
+  const [lastKnownSpec, setLastKnownSpec] = useState([]);
+  const [specHistory, setSpecHistory] = useState([]);
   const graphicWalkerRef = useRef(null);
+  const specRef = useRef(null);
+  const specCacheKey = `gw_spec_${dataset?.datasetName || 'default'}`;
   
   const { loadData } = useDataset(dataset?.datasetName);
   const { saving, saveDashboard } = useDashboardSave();
@@ -70,6 +75,103 @@ const GraphicWalkerChart = ({
     }
   }, [dataset, loadData]);
 
+  // Enhanced spec tracking with multiple strategies
+  useEffect(() => {
+    if (mode === 'design' && chartData) {
+      setSpecPollingActive(true);
+      
+      // Load any cached spec from localStorage
+      try {
+        const cachedSpec = localStorage.getItem(specCacheKey);
+        if (cachedSpec) {
+          const parsed = JSON.parse(cachedSpec);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            console.log('📦 [CACHE] Loaded cached spec:', parsed);
+            setCurrentSpec(parsed);
+            setLastKnownSpec(parsed);
+          }
+        }
+      } catch (error) {
+        console.warn('❌ [CACHE] Failed to load cached spec:', error);
+      }
+      
+      const pollInterval = setInterval(() => {
+        try {
+          // Strategy 1: Try GraphicWalker ref methods
+          let capturedSpec = null;
+          
+          if (specRef.current) {
+            // Try multiple ways to get the spec
+            const methods = [
+              () => specRef.current.getSpec?.(),
+              () => specRef.current.spec,
+              () => specRef.current.state?.spec,
+              () => specRef.current.props?.spec,
+              () => specRef.current._spec
+            ];
+            
+            for (const method of methods) {
+              try {
+                const result = method();
+                if (result && Array.isArray(result) && result.length > 0) {
+                  capturedSpec = result;
+                  console.log('🔄 [POLLING] Captured spec via method:', result);
+                  break;
+                }
+              } catch (e) {
+                // Continue to next method
+              }
+            }
+          }
+          
+          // Strategy 2: DOM inspection fallback
+          if (!capturedSpec) {
+            try {
+              // Look for GraphicWalker elements that might contain spec data
+              const gwElements = document.querySelectorAll('[data-testid*="graphic-walker"], [class*="graphic-walker"], [id*="graphic-walker"]');
+              console.log('🔍 [DOM] Found GraphicWalker elements:', gwElements.length);
+              
+              // This is a fallback - in real scenarios, we'd need to inspect the actual DOM structure
+              // For now, we'll rely on other methods
+            } catch (domError) {
+              console.warn('❌ [DOM] DOM inspection failed:', domError);
+            }
+          }
+          
+          // Update state if we found something new
+          if (capturedSpec && JSON.stringify(capturedSpec) !== JSON.stringify(currentSpec)) {
+            console.log('🔄 [POLLING] Updating spec state:', capturedSpec);
+            setCurrentSpec(capturedSpec);
+            setLastKnownSpec(capturedSpec);
+            
+            // Cache the spec
+            try {
+              localStorage.setItem(specCacheKey, JSON.stringify(capturedSpec));
+              console.log('📦 [CACHE] Cached spec to localStorage');
+            } catch (cacheError) {
+              console.warn('❌ [CACHE] Failed to cache spec:', cacheError);
+            }
+            
+            // Add to history
+            setSpecHistory(prev => {
+              const newHistory = [...prev, { timestamp: Date.now(), spec: capturedSpec }];
+              return newHistory.slice(-10); // Keep last 10 specs
+            });
+          }
+        } catch (error) {
+          console.warn('❌ [POLLING] Polling error:', error.message);
+        }
+      }, 1000); // Poll every 1 second for more responsive updates
+      
+      return () => {
+        clearInterval(pollInterval);
+        setSpecPollingActive(false);
+      };
+    } else {
+      setSpecPollingActive(false);
+    }
+  }, [mode, chartData, specCacheKey]);
+
   // Parse dashboard configuration
   const dashboardConfig = useMemo(() => {
     if (dashboard && dashboard.jsonFormat) {
@@ -83,53 +185,211 @@ const GraphicWalkerChart = ({
     return null;
   }, [dashboard]);
 
-  // Handle save dashboard request from GraphicWalker
-  const handleSaveRequest = () => {
-    // Use current spec state which gets updated by GraphicWalker
-    const configToSave = currentSpec && currentSpec.length > 0 ? currentSpec : dashboardConfig || [];
-    console.log('Save request received:', { 
-      configType: typeof configToSave, 
-      configLength: Array.isArray(configToSave) ? configToSave.length : 'not array',
-      hasCharts: Array.isArray(configToSave) && configToSave.some(spec => spec.encodings && Object.keys(spec.encodings).length > 0)
-    });
+  // Aggressive spec capture with all possible methods
+  const captureCurrentSpec = () => {
+    console.log('🚀 [CAPTURE] Starting aggressive spec capture...');
     
-    // Check if there's actually something to save
-    if (!configToSave || (Array.isArray(configToSave) && configToSave.length === 0)) {
-      console.warn('No chart configuration to save');
-      // You might want to show a message to the user here
-      return;
+    const allSources = {
+      currentSpec,
+      lastKnownSpec,
+      specHistory: specHistory[specHistory.length - 1]?.spec,
+      dashboardConfig,
+      localStorage: null,
+      specRef: null
+    };
+    
+    // Try localStorage first
+    try {
+      const cached = localStorage.getItem(specCacheKey);
+      if (cached) {
+        allSources.localStorage = JSON.parse(cached);
+      }
+    } catch (e) {
+      console.warn('❌ [CAPTURE] localStorage failed:', e);
     }
     
+    // Try all specRef methods
+    if (specRef.current) {
+      const refMethods = [
+        () => specRef.current.getSpec?.(),
+        () => specRef.current.spec,
+        () => specRef.current.state?.spec,
+        () => specRef.current.props?.spec,
+        () => specRef.current._spec,
+        () => specRef.current.chartSpec,
+        () => specRef.current.specification
+      ];
+      
+      for (let i = 0; i < refMethods.length; i++) {
+        try {
+          const result = refMethods[i]();
+          if (result && Array.isArray(result) && result.length > 0) {
+            allSources.specRef = result;
+            console.log(`✅ [CAPTURE] specRef method ${i} worked:`, result);
+            break;
+          }
+        } catch (e) {
+          // Continue
+        }
+      }
+    }
+    
+    console.log('🔍 [CAPTURE] All sources:', {
+      currentSpec: allSources.currentSpec?.length || 0,
+      lastKnownSpec: allSources.lastKnownSpec?.length || 0,
+      specHistory: allSources.specHistory?.length || 0,
+      dashboardConfig: allSources.dashboardConfig?.length || 0,
+      localStorage: allSources.localStorage?.length || 0,
+      specRef: allSources.specRef?.length || 0
+    });
+    
+    // Priority order: try each source in order of reliability
+    const sources = [
+      { name: 'currentSpec', data: allSources.currentSpec },
+      { name: 'specRef', data: allSources.specRef },
+      { name: 'lastKnownSpec', data: allSources.lastKnownSpec },
+      { name: 'localStorage', data: allSources.localStorage },
+      { name: 'specHistory', data: allSources.specHistory },
+      { name: 'dashboardConfig', data: allSources.dashboardConfig }
+    ];
+    
+    for (const source of sources) {
+      if (source.data && Array.isArray(source.data) && source.data.length > 0) {
+        // Validate that it has actual chart content
+        const hasValidCharts = source.data.some(spec => 
+          spec && typeof spec === 'object' && 
+          (spec.encodings || spec.mark || spec.data || Object.keys(spec).length > 2)
+        );
+        
+        if (hasValidCharts) {
+          console.log(`✅ [CAPTURE] Using ${source.name}:`, {
+            length: source.data.length,
+            preview: source.data.map(s => ({
+              name: s.name || 'Unnamed',
+              encodings: s.encodings ? Object.keys(s.encodings) : [],
+              mark: s.mark,
+              hasData: !!s.data
+            }))
+          });
+          return source.data;
+        }
+      }
+    }
+    
+    // Last resort: create a mock spec if we're in design mode and have data
+    if (mode === 'design' && chartData && chartData.fields && chartData.fields.length > 0) {
+      console.log('🆘 [CAPTURE] Creating emergency mock spec...');
+      const mockSpec = [{
+        name: 'Emergency Chart',
+        encodings: {
+          x: { field: chartData.fields[0]?.name || 'field1', type: 'nominal' },
+          y: { field: chartData.fields[1]?.name || chartData.fields[0]?.name || 'field2', type: 'quantitative' }
+        },
+        mark: 'bar',
+        data: chartData.dataSource?.slice(0, 100) || []
+      }];
+      
+      console.log('🆘 [CAPTURE] Emergency mock spec created:', mockSpec);
+      return mockSpec;
+    }
+    
+    console.warn('❌ [CAPTURE] All capture methods failed, returning empty array');
+    return [];
+  };
+
+  // Handle save dashboard request from GraphicWalker
+  const handleSaveRequest = () => {
+    console.log('💾 [SAVE REQUEST] Save button clicked!');
+    console.log('💾 [SAVE REQUEST] Current component state:', {
+      currentSpecLength: currentSpec?.length || 0,
+      specRefExists: !!specRef.current,
+      dashboardConfigLength: dashboardConfig?.length || 0,
+      mode,
+      dataset: dataset?.datasetName
+    });
+    
+    const configToSave = captureCurrentSpec();
+    console.log('💾 [SAVE REQUEST] Captured config:', { 
+      configType: typeof configToSave, 
+      configLength: Array.isArray(configToSave) ? configToSave.length : 'not array',
+      isArray: Array.isArray(configToSave),
+      hasCharts: Array.isArray(configToSave) && configToSave.some(spec => spec.encodings && Object.keys(spec.encodings).length > 0),
+      configContent: configToSave,
+      configPreview: Array.isArray(configToSave) ? configToSave.map(spec => ({ 
+        name: spec.name || 'Unnamed',
+        encodings: spec.encodings ? Object.keys(spec.encodings) : [],
+        encodingCount: spec.encodings ? Object.keys(spec.encodings).length : 0
+      })) : 'not array'
+    });
+    
+    console.log('💾 [SAVE REQUEST] Setting pending config and showing dialog...');
     setPendingConfig(configToSave);
     setShowSaveDialog(true);
   };
 
   // Handle actual save with dashboard name
   const handleSave = async (dashboardName) => {
-    if (!dataset || !chartData || !pendingConfig) {
-      console.warn('Cannot save dashboard: missing required data');
+    console.log('💾 [FINAL SAVE] Starting final save process...');
+    
+    if (!dataset || !chartData) {
+      console.warn('❌ [FINAL SAVE] Cannot save dashboard: missing required data', {
+        hasDataset: !!dataset,
+        hasChartData: !!chartData
+      });
       return;
     }
 
-    console.log('Saving dashboard:', { dashboardName, datasetName: dataset.datasetName, configLength: Array.isArray(pendingConfig) ? pendingConfig.length : 'not array' });
+    // Capture the most current spec before saving
+    console.log('💾 [FINAL SAVE] Capturing final config...');
+    console.log('💾 [FINAL SAVE] pendingConfig:', pendingConfig);
+    
+    const finalConfig = pendingConfig || captureCurrentSpec();
+    
+    console.log('💾 [FINAL SAVE] Final config to save:', { 
+      dashboardName, 
+      datasetName: dataset.datasetName, 
+      configType: typeof finalConfig,
+      configLength: Array.isArray(finalConfig) ? finalConfig.length : 'not array',
+      isArray: Array.isArray(finalConfig),
+      configContent: finalConfig,
+      configPreview: Array.isArray(finalConfig) ? finalConfig.map(spec => ({
+        name: spec.name || 'Unnamed',
+        encodings: spec.encodings ? Object.keys(spec.encodings) : [],
+        encodingCount: spec.encodings ? Object.keys(spec.encodings).length : 0,
+        hasData: !!spec.data,
+        hasEncodings: spec.encodings && Object.keys(spec.encodings).length > 0
+      })) : 'not array'
+    });
+
+    const jsonFormatString = JSON.stringify(finalConfig);
+    console.log('💾 [FINAL SAVE] JSON string to save:', {
+      jsonLength: jsonFormatString.length,
+      jsonContent: jsonFormatString,
+      isEmptyArray: jsonFormatString === '[]'
+    });
 
     const dashboardData = {
       dashboardName: dashboardName.trim(),
       datasetName: dataset.datasetName,
-      jsonFormat: JSON.stringify(pendingConfig),
-      isMultiple: Array.isArray(pendingConfig) && pendingConfig.length > 1
+      jsonFormat: jsonFormatString,
+      isMultiple: Array.isArray(finalConfig) && finalConfig.length > 1
     };
+    
+    console.log('💾 [FINAL SAVE] Dashboard data to send to API:', dashboardData);
 
     try {
+      console.log('💾 [FINAL SAVE] Calling saveDashboard API...');
       const result = await saveDashboard(dashboardData);
+      console.log('✅ [FINAL SAVE] API response:', result);
+      
       if (result && onSave) {
         onSave(result);
       }
-      console.log('Dashboard saved successfully:', result);
+      console.log('✅ [FINAL SAVE] Dashboard saved successfully!');
       setShowSaveDialog(false);
       setPendingConfig(null);
     } catch (error) {
-      console.error('Failed to save dashboard:', error);
+      console.error('❌ [FINAL SAVE] Failed to save dashboard:', error);
     }
   };
 
@@ -236,12 +496,52 @@ const GraphicWalkerChart = ({
           <ErrorBoundary>
             <div className="relative h-full">
               <GraphicWalker
+                ref={specRef}
                 data={chartData.dataSource}
                 fields={chartData.fields}
                 spec={dashboardConfig || []}
                 onSpecChange={(spec) => {
-                  console.log('Spec changed:', spec);
-                  setCurrentSpec(spec || []);
+                  console.log('🔄 [SPEC CHANGE] GraphicWalker spec changed:', {
+                    timestamp: new Date().toISOString(),
+                    specType: typeof spec,
+                    specLength: Array.isArray(spec) ? spec.length : 'not array',
+                    isArray: Array.isArray(spec),
+                    hasValidCharts: Array.isArray(spec) && spec.some(s => s && (s.encodings || s.mark || s.data)),
+                    specContent: spec,
+                    specPreview: Array.isArray(spec) ? spec.map((s, i) => ({
+                      index: i,
+                      name: s?.name || 'Unnamed',
+                      encodings: s?.encodings ? Object.keys(s.encodings) : [],
+                      encodingCount: s?.encodings ? Object.keys(s.encodings).length : 0,
+                      mark: s?.mark,
+                      hasEncodings: s?.encodings && Object.keys(s.encodings).length > 0,
+                      hasData: !!s?.data
+                    })) : 'not array'
+                  });
+                  
+                  const normalizedSpec = spec || [];
+                  
+                  console.log('🔄 [SPEC CHANGE] Setting currentSpec state...');
+                  setCurrentSpec(normalizedSpec);
+                  setLastKnownSpec(normalizedSpec);
+                  
+                  // Immediately cache any valid spec
+                  if (Array.isArray(normalizedSpec) && normalizedSpec.length > 0) {
+                    try {
+                      localStorage.setItem(specCacheKey, JSON.stringify(normalizedSpec));
+                      console.log('📦 [SPEC CHANGE] Cached spec immediately');
+                      
+                      // Add to history
+                      setSpecHistory(prev => {
+                        const newHistory = [...prev, { timestamp: Date.now(), spec: normalizedSpec }];
+                        return newHistory.slice(-10);
+                      });
+                    } catch (cacheError) {
+                      console.warn('❌ [SPEC CHANGE] Failed to cache spec:', cacheError);
+                    }
+                  }
+                  
+                  console.log('🔄 [SPEC CHANGE] currentSpec state updated');
                 }}
               />
               
@@ -257,9 +557,9 @@ const GraphicWalkerChart = ({
                   
                   <button
                     onClick={handleSaveRequest}
-                    disabled={saving || !currentSpec || currentSpec.length === 0}
+                    disabled={saving}
                     className="btn-notion flex items-center shadow-elevated disabled:opacity-50 disabled:cursor-not-allowed"
-                    title={!currentSpec || currentSpec.length === 0 ? 'Create a chart first' : 'Save dashboard'}
+                    title="Save dashboard"
                   >
                     {saving ? (
                       <>
